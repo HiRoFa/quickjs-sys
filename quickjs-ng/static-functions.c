@@ -57,14 +57,6 @@ JS_BOOL JS_IsBigInt_real(JSContext *ctx, JSValueConst v) {
     return JS_IsBigInt(ctx, v);
 }
 
-JS_BOOL JS_IsBigFloat_real(JSValueConst v) {
-    return JS_IsBigFloat(v);
-}
-
-JS_BOOL JS_IsBigDecimal_real(JSValueConst v) {
-    return JS_IsBigDecimal(v);
-}
-
 JS_BOOL JS_IsBool_real(JSValueConst v) {
     return JS_IsBool(v);
 }
