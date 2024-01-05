@@ -25,9 +25,9 @@ JSValue JS_DupValueRT_real(JSRuntime *rt, JSValueConst v) {
     return JS_DupValueRT(rt, v);
 }
 
-JSValue JS_NewFloat64_real(JSContext *ctx, double d) {
-    return JS_NewFloat64(ctx, d);
-}
+//JSValue JS_NewFloat64_real(JSContext *ctx, double d) {
+//    return JS_NewFloat64(ctx, d);
+//}
 
 JSValue JS_NewInt32_real(JSContext *ctx, int32_t val) {
     return JS_NewInt32(ctx, val);
