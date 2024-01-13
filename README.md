@@ -8,7 +8,7 @@ uses either
 * openwebf, Optimized quickjs mantained by OpenWebF team. (```features=['openwebf']```) see: https://github.com/openwebf/quickjs
 
 status: 
-* bellard version is working,
-* quickjs-ng gives some warnings while compiling, checking it out
+* bellard version is working, updated to 2024-01-13
+* quickjs-ng gives some warnings while compiling, checking it out, also needs some changes to the build script
 * openwebf does not compile as build scripts needs some mods, will look into that later
 
