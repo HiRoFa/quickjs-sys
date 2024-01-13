@@ -167,6 +167,7 @@ pub const JS_EVAL_FLAG_STRICT: u32 = 8;
 pub const JS_EVAL_FLAG_STRIP: u32 = 16;
 pub const JS_EVAL_FLAG_COMPILE_ONLY: u32 = 32;
 pub const JS_EVAL_FLAG_BACKTRACE_BARRIER: u32 = 64;
+pub const JS_EVAL_FLAG_ASYNC: u32 = 128;
 pub const JS_ATOM_NULL: u32 = 0;
 pub const JS_CALL_FLAG_CONSTRUCTOR: u32 = 1;
 pub const JS_GPN_STRING_MASK: u32 = 1;
@@ -3026,8 +3027,18 @@ extern "C" {
         sf: *const JSSharedArrayBufferFunctions,
     );
 }
+pub const JSPromiseStateEnum_JS_PROMISE_PENDING: JSPromiseStateEnum = 0;
+pub const JSPromiseStateEnum_JS_PROMISE_FULFILLED: JSPromiseStateEnum = 1;
+pub const JSPromiseStateEnum_JS_PROMISE_REJECTED: JSPromiseStateEnum = 2;
+pub type JSPromiseStateEnum = ::std::os::raw::c_uint;
 extern "C" {
     pub fn JS_NewPromiseCapability(ctx: *mut JSContext, resolving_funcs: *mut JSValue) -> JSValue;
+}
+extern "C" {
+    pub fn JS_PromiseState(ctx: *mut JSContext, promise: JSValue) -> JSPromiseStateEnum;
+}
+extern "C" {
+    pub fn JS_PromiseResult(ctx: *mut JSContext, promise: JSValue) -> JSValue;
 }
 pub type JSHostPromiseRejectionTracker = ::std::option::Option<
     unsafe extern "C" fn(
@@ -3161,11 +3172,11 @@ extern "C" {
     ) -> JSAtom;
 }
 extern "C" {
-    pub fn JS_RunModule(
+    pub fn JS_LoadModule(
         ctx: *mut JSContext,
         basename: *const ::std::os::raw::c_char,
         filename: *const ::std::os::raw::c_char,
-    ) -> *mut JSModuleDef;
+    ) -> JSValue;
 }
 pub const JSCFunctionEnum_JS_CFUNC_generic: JSCFunctionEnum = 0;
 pub const JSCFunctionEnum_JS_CFUNC_generic_magic: JSCFunctionEnum = 1;

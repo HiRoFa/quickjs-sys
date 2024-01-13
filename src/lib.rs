@@ -33,7 +33,7 @@ mod tests {
             let value = JS_Eval(
                 ctx,
                 code.as_ptr(),
-                (code_str.len() - 1) as u64,
+                (code_str.len() - 1) as usize,
                 script.as_ptr(),
                 JS_EVAL_TYPE_GLOBAL as i32,
             );

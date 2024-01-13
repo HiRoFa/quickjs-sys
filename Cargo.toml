@@ -1,8 +1,8 @@
 [package]
 edition = "2018"
 name = "hirofa-quickjs-sys"
-description = "QuickJS Javascript Engine FFI bindings"
-version = "0.1.0"
+description = "QuickJS, QuickJS-NG Javascript Engine FFI bindings"
+version = "0.2.0"
 readme = "README.md"
 repository = "https://github.com/HiRoFa/quickjs-sys"
 license = "MIT"
@@ -13,10 +13,10 @@ keywords = ["quickjs"]
 build = "build.rs"
 
 [features]
-default = []
+default = ["bellard"]
 bellard = []
-quickjs-ng = []
-openwebf = []
+#quickjs-ng = []
+#openwebf = []
 
 [build-dependencies]
 cc = { version = "1.0.66"}
