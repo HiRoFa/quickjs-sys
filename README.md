@@ -9,6 +9,6 @@ uses either
 
 status: 
 * bellard version is working, updated to 2024-01-13
-* quickjs-ng gives some warnings while compiling, checking it out, also needs some changes to the build script
+* quickjs-ng compiles, have not tested yet
 * openwebf does not compile as build scripts needs some mods, will look into that later
 
