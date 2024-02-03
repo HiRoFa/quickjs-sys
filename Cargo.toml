@@ -15,7 +15,7 @@ build = "build.rs"
 [features]
 default = ["bellard"]
 bellard = []
-#quickjs-ng = []
+quickjs-ng = []
 #openwebf = []
 
 [build-dependencies]

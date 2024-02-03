@@ -7,7 +7,10 @@ extern "C" {
     fn JS_FreeValueRT_real(rt: *mut JSRuntime, v: JSValue);
     fn JS_NewBool_real(ctx: *mut JSContext, v: bool) -> JSValue;
     fn JS_NewInt32_real(ctx: *mut JSContext, v: i32) -> JSValue;
+
+    #[cfg(feature = "bellard")]
     fn JS_NewFloat64_real(ctx: *mut JSContext, v: f64) -> JSValue;
+
     fn JS_VALUE_IS_NAN_real(v: JSValue) -> bool;
     fn JS_VALUE_GET_FLOAT64_real(v: JSValue) -> f64;
     fn JS_VALUE_GET_NORM_TAG_real(v: JSValue) -> ::std::os::raw::c_int;
@@ -64,6 +67,7 @@ pub unsafe fn JS_NewInt32(ctx: *mut JSContext, v: i32) -> JSValue {
 }
 
 /// create a new f64 value, please note that if the passed f64 fits in a i32 this will return a value with flag 0 (i32)
+#[cfg(feature = "bellard")]
 pub unsafe fn JS_NewFloat64(ctx: *mut JSContext, v: f64) -> JSValue {
     JS_NewFloat64_real(ctx, v)
 }
