@@ -8,3 +8,11 @@ rm quickjs-2024-01-13.tar.xz
 mv quickjs-2024-01-13 quickjs
 bindgen ../wrapper.h -o bindings.rs -- -I ./
 echo "2024-01-13" > ./quickjs/VERSION
+
+#wget https://bellard.org/quickjs/quickjs-2023-12-09.tar.xz
+#rm -r -f ./quickjs
+#tar -xvf quickjs-2023-12-09.tar.xz
+#rm quickjs-2023-12-09.tar.xz
+#mv quickjs-2023-12-09 quickjs
+#bindgen ../wrapper.h -o bindings.rs -- -I ./
+#echo "2023-12-09" > ./quickjs/VERSION
