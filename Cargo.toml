@@ -13,7 +13,7 @@ keywords = ["quickjs"]
 build = "build.rs"
 
 [features]
-default = []
+default = ["bellard"]
 bellard = []
 quickjs-ng = []
 #openwebf = []
