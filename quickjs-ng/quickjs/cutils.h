@@ -26,10 +26,8 @@
 #define CUTILS_H
 
 #include <stdlib.h>
+#include <string.h>
 #include <inttypes.h>
-
-/* set if CPU is big endian */
-#undef WORDS_BIGENDIAN
 
 #if defined(_MSC_VER)
 #include <windows.h>
@@ -40,17 +38,56 @@
 #endif
 #if defined(__APPLE__)
 #include <malloc/malloc.h>
+#elif defined(__ANDROID__)
+#include <dlmalloc.h>
 #elif defined(__linux__) || defined(__CYGWIN__)
 #include <malloc.h>
 #elif defined(__FreeBSD__)
 #include <malloc_np.h>
 #endif
 
-#define likely(x)       __builtin_expect(!!(x), 1)
-#define unlikely(x)     __builtin_expect(!!(x), 0)
-#define force_inline inline __attribute__((always_inline))
-#define no_inline __attribute__((noinline))
-#define __maybe_unused __attribute__((unused))
+
+#if defined(_MSC_VER) && !defined(__clang__)
+#  define likely(x)       (x)
+#  define unlikely(x)     (x)
+#  define force_inline __forceinline
+#  define no_inline __declspec(noinline)
+#  define __maybe_unused
+#  define __attribute__(x)
+#  define __attribute(x)
+#  include <intrin.h>
+static void *__builtin_frame_address(unsigned int level) {
+    return (void *)((char*)_AddressOfReturnAddress() - sizeof(int *) - level * sizeof(int *));
+}
+#else
+#  define likely(x)       __builtin_expect(!!(x), 1)
+#  define unlikely(x)     __builtin_expect(!!(x), 0)
+#  define force_inline inline __attribute__((always_inline))
+#  define no_inline __attribute__((noinline))
+#  define __maybe_unused __attribute__((unused))
+#endif
+
+// https://stackoverflow.com/a/6849629
+#undef FORMAT_STRING
+#if _MSC_VER >= 1400
+# include <sal.h>
+# if _MSC_VER > 1400
+#  define FORMAT_STRING(p) _Printf_format_string_ p
+# else
+#  define FORMAT_STRING(p) __format_string p
+# endif /* FORMAT_STRING */
+#else
+# define FORMAT_STRING(p) p
+#endif /* _MSC_VER */
+
+#if defined(_MSC_VER) && !defined(__clang__)
+#include <math.h>
+#define INF INFINITY
+#define NEG_INF -INFINITY
+#else
+#define INF (1.0/0.0)
+#define NEG_INF (-1.0/0.0)
+#endif
 
 #define xglue(x, y) x ## y
 #define glue(x, y) xglue(x, y)
@@ -65,6 +102,16 @@
 #ifndef endof
 #define endof(x) ((x) + countof(x))
 #endif
+#endif
+#ifndef container_of
+/* return the pointer of type 'type *' containing 'ptr' as field 'member' */
+#define container_of(ptr, type, member) ((type *)((uint8_t *)(ptr) - offsetof(type, member)))
+#endif
+
+#if !defined(_MSC_VER) && defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+#define minimum_length(n)  static n
+#else
+#define minimum_length(n)  n
 #endif
 
 typedef int BOOL;
@@ -132,82 +179,106 @@ static inline int64_t min_int64(int64_t a, int64_t b)
 /* WARNING: undefined if a = 0 */
 static inline int clz32(unsigned int a)
 {
+#if defined(_MSC_VER) && !defined(__clang__)
+    unsigned long index;
+    _BitScanReverse(&index, a);
+    return 31 - index;
+#else
     return __builtin_clz(a);
+#endif
 }
 
 /* WARNING: undefined if a = 0 */
 static inline int clz64(uint64_t a)
 {
+#if defined(_MSC_VER) && !defined(__clang__)
+    unsigned long index;
+    _BitScanReverse64(&index, a);
+    return 63 - index;
+#else
     return __builtin_clzll(a);
+#endif
 }
 
 /* WARNING: undefined if a = 0 */
 static inline int ctz32(unsigned int a)
 {
+#if defined(_MSC_VER) && !defined(__clang__)
+    unsigned long index;
+    _BitScanForward(&index, a);
+    return index;
+#else
     return __builtin_ctz(a);
+#endif
 }
 
 /* WARNING: undefined if a = 0 */
 static inline int ctz64(uint64_t a)
 {
+#if defined(_MSC_VER) && !defined(__clang__)
+    unsigned long index;
+    _BitScanForward64(&index, a);
+    return index;
+#else
     return __builtin_ctzll(a);
+#endif
 }
-
-struct __attribute__((packed)) packed_u64 {
-    uint64_t v;
-};
-
-struct __attribute__((packed)) packed_u32 {
-    uint32_t v;
-};
-
-struct __attribute__((packed)) packed_u16 {
-    uint16_t v;
-};
 
 static inline uint64_t get_u64(const uint8_t *tab)
 {
-    return ((const struct packed_u64 *)tab)->v;
+    uint64_t v;
+    memcpy(&v, tab, sizeof(v));
+    return v;
 }
 
 static inline int64_t get_i64(const uint8_t *tab)
 {
-    return (int64_t)((const struct packed_u64 *)tab)->v;
+    int64_t v;
+    memcpy(&v, tab, sizeof(v));
+    return v;
 }
 
 static inline void put_u64(uint8_t *tab, uint64_t val)
 {
-    ((struct packed_u64 *)tab)->v = val;
+    memcpy(tab, &val, sizeof(val));
 }
 
 static inline uint32_t get_u32(const uint8_t *tab)
 {
-    return ((const struct packed_u32 *)tab)->v;
+    uint32_t v;
+    memcpy(&v, tab, sizeof(v));
+    return v;
 }
 
 static inline int32_t get_i32(const uint8_t *tab)
 {
-    return (int32_t)((const struct packed_u32 *)tab)->v;
+    int32_t v;
+    memcpy(&v, tab, sizeof(v));
+    return v;
 }
 
 static inline void put_u32(uint8_t *tab, uint32_t val)
 {
-    ((struct packed_u32 *)tab)->v = val;
+    memcpy(tab, &val, sizeof(val));
 }
 
 static inline uint32_t get_u16(const uint8_t *tab)
 {
-    return ((const struct packed_u16 *)tab)->v;
+    uint16_t v;
+    memcpy(&v, tab, sizeof(v));
+    return v;
 }
 
 static inline int32_t get_i16(const uint8_t *tab)
 {
-    return (int16_t)((const struct packed_u16 *)tab)->v;
+    int16_t v;
+    memcpy(&v, tab, sizeof(v));
+    return v;
 }
 
 static inline void put_u16(uint8_t *tab, uint16_t val)
 {
-    ((struct packed_u16 *)tab)->v = val;
+    memcpy(tab, &val, sizeof(val));
 }
 
 static inline uint32_t get_u8(const uint8_t *tab)
@@ -295,7 +366,7 @@ static inline int dbuf_put_u64(DynBuf *s, uint64_t val)
     return dbuf_put(s, (uint8_t *)&val, 8);
 }
 int __attribute__((format(printf, 2, 3))) dbuf_printf(DynBuf *s,
-                                                      const char *fmt, ...);
+                                                      FORMAT_STRING(const char *fmt), ...);
 void dbuf_free(DynBuf *s);
 static inline BOOL dbuf_error(DynBuf *s) {
     return s->error;
@@ -350,6 +421,8 @@ static inline size_t js__malloc_usable_size(const void *ptr)
     return malloc_size(ptr);
 #elif defined(_WIN32)
     return _msize((void *)ptr);
+#elif defined(__ANDROID__)
+    return dlmalloc_usable_size((void *)ptr);
 #elif defined(__linux__) || defined(__FreeBSD__)
     return malloc_usable_size((void *)ptr);
 #else

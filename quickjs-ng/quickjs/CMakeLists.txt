@@ -5,9 +5,6 @@ project(quickjs LANGUAGES C)
 include(CheckCCompilerFlag)
 include(GNUInstallDirs)
 
-# TODO:
-#  - Support cross-compilation
-
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
@@ -55,6 +52,17 @@ if(MSVC)
     xcheck_add_c_compiler_flag(-Wno-reserved-identifier)
     xcheck_add_c_compiler_flag(-Wdeprecated-declarations)
     add_compile_definitions(WIN32_LEAN_AND_MEAN)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "WASI")
+    add_compile_definitions(
+        _WASI_EMULATED_PROCESS_CLOCKS
+        _WASI_EMULATED_SIGNAL
+    )
+    add_link_options(
+        -lwasi-emulated-process-clocks
+        -lwasi-emulated-signal
+    )
 endif()
 
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
@@ -152,7 +160,7 @@ endif()
 
 add_library(qjs ${qjs_sources})
 target_compile_definitions(qjs PRIVATE ${qjs_defines})
-if (CMAKE_BUILD_TYPE MATCHES Debug)
+if (CMAKE_BUILD_TYPE MATCHES Debug OR DUMP_LEAKS)
     target_compile_definitions(qjs PRIVATE
         DUMP_LEAKS
     )
@@ -164,6 +172,18 @@ target_include_directories(qjs PUBLIC
 
 if(EMSCRIPTEN)
     add_executable(qjs_wasm ${qjs_sources})
+    target_link_options(qjs_wasm PRIVATE
+        # in emscripten 3.x, this will be set to 16k which is too small for quickjs. #write sth. to force github rebuild
+        -sSTACK_SIZE=2097152 # let it be 2m = 2 * 1024 * 1024 = 2097152, otherwise, stack overflow may be occured at bootstrap
+        -sNO_INVOKE_RUN
+        -sNO_EXIT_RUNTIME
+        -sMODULARIZE # do not mess the global
+        -sEXPORT_ES6 # export js file to morden es module
+        -sEXPORT_NAME=getQuickJs # give a name
+        -sTEXTDECODER=1 # it will be 2 if we use -Oz, and that will cause js -> c string convertion fail
+        -sNO_DEFAULT_TO_CXX # this project is pure c project, no need for c plus plus handle
+        -sEXPORTED_RUNTIME_METHODS=ccall,cwrap
+    )
     target_compile_definitions(qjs_wasm PRIVATE ${qjs_defines})
     target_link_libraries(qjs_wasm m)
 endif()
@@ -183,19 +203,10 @@ target_link_libraries(qjsc ${qjs_libs})
 # QuickJS CLI
 #
 
-add_custom_command(
-    OUTPUT repl.c
-    COMMAND qjsc -o ./repl.c -m ${CMAKE_CURRENT_SOURCE_DIR}/repl.js
-    DEPENDS qjsc
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Compile repl.js to bytecode"
-    SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/repl.js
-)
-
 add_executable(qjs_exe
+    gen/repl.c
     qjs.c
     quickjs-libc.c
-    ${CMAKE_CURRENT_BINARY_DIR}/repl.c
 )
 set_target_properties(qjs_exe PROPERTIES
     OUTPUT_NAME "qjs"
@@ -236,16 +247,8 @@ add_executable(unicode_gen EXCLUDE_FROM_ALL
 )
 target_compile_definitions(unicode_gen PRIVATE ${qjs_defines})
 
-add_custom_command(
-    OUTPUT function_source.c
-    COMMAND qjsc -e -o function_source.c ${CMAKE_CURRENT_SOURCE_DIR}/tests/function_source.js
-    DEPENDS qjsc ${CMAKE_CURRENT_SOURCE_DIR}/tests/function_source.js
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT "Compile function_source.js to a C file with bytecode embedded"
-    SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/function_source.js
-)
 add_executable(function_source
-    ${CMAKE_CURRENT_BINARY_DIR}/function_source.c
+    gen/function_source.c
     quickjs-libc.c
 )
 target_include_directories(function_source PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
@@ -256,32 +259,16 @@ target_link_libraries(function_source ${qjs_libs})
 #
 
 if(BUILD_EXAMPLES AND NOT WIN32)
-    add_custom_command(
-        OUTPUT hello.c
-        COMMAND qjsc -e -o hello.c ${CMAKE_CURRENT_SOURCE_DIR}/examples/hello.js
-        DEPENDS qjsc
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        COMMENT "Compile hello.js to a C file with bytecode embedded"
-        SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/examples/hello.js
-    )
     add_executable(hello
-        ${CMAKE_CURRENT_BINARY_DIR}/hello.c
+        gen/hello.c
         quickjs-libc.c
     )
     target_include_directories(hello PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     target_compile_definitions(hello PRIVATE ${qjs_defines})
     target_link_libraries(hello ${qjs_libs})
 
-    add_custom_command(
-        OUTPUT hello_module.c
-        COMMAND qjsc -e -o hello_module.c -m ${CMAKE_CURRENT_SOURCE_DIR}/examples/hello_module.js
-        DEPENDS qjsc
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        COMMENT "Compile hello_module.js to a C file with bytecode embedded"
-        SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/examples/hello_module.js
-    )
     add_executable(hello_module
-        ${CMAKE_CURRENT_BINARY_DIR}/hello_module.c
+        gen/hello_module.c
         quickjs-libc.c
     )
     target_include_directories(hello_module PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
@@ -320,17 +307,9 @@ if(BUILD_EXAMPLES AND NOT WIN32)
         endif()
     endif()
 
-    add_custom_command(
-        OUTPUT test_fib.c
-        COMMAND qjsc -e -o test_fib.c -M ${CMAKE_CURRENT_SOURCE_DIR}/examples/fib.so,fib -m ${CMAKE_CURRENT_SOURCE_DIR}/examples/test_fib.js
-        DEPENDS qjsc
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        COMMENT "Compile test_fib.js to a C file with bytecode embedded"
-        SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/examples/test_fib.js
-    )
     add_executable(test_fib
-        ${CMAKE_CURRENT_BINARY_DIR}/test_fib.c
         examples/fib.c
+        gen/test_fib.c
         quickjs-libc.c
     )
     target_include_directories(test_fib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

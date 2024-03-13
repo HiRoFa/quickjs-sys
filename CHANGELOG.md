@@ -1,5 +1,13 @@
 # hirofa-quickjs_sys - Changelog
 
+## 0.4.0
+
+* updated quickjs-ng to 0.4.1
+
+## 0.3.0
+
+* quckjs-ng working
+
 ## 0.1.0
 
 Initial code

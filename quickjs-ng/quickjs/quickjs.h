@@ -247,8 +247,13 @@ static inline JS_BOOL JS_VALUE_IS_NAN(JSValue v)
 #define JS_PROP_NO_ADD           (1 << 16) /* internal use */
 #define JS_PROP_NO_EXOTIC        (1 << 17) /* internal use */
 #define JS_PROP_DEFINE_PROPERTY  (1 << 18) /* internal use */
+#define JS_PROP_REFLECT_DEFINE_PROPERTY (1 << 19) /* internal use */
 
+#if defined(__wasi__)
+#define JS_DEFAULT_STACK_SIZE 0
+#else
 #define JS_DEFAULT_STACK_SIZE (256 * 1024)
+#endif
 
 /* JS_Eval() flags */
 #define JS_EVAL_TYPE_GLOBAL   (0 << 0) /* global code (default) */
@@ -450,7 +455,10 @@ typedef struct JSClassDef {
     JSClassExoticMethods *exotic;
 } JSClassDef;
 
+#define JS_INVALID_CLASS_ID 0
 JS_EXTERN JSClassID JS_NewClassID(JSRuntime *rt, JSClassID *pclass_id);
+/* Returns the class ID if `v` is an object, otherwise returns JS_INVALID_CLASS_ID. */
+JS_EXTERN JSClassID JS_GetClassID(JSValue v);
 JS_EXTERN int JS_NewClass(JSRuntime *rt, JSClassID class_id, const JSClassDef *class_def);
 JS_EXTERN int JS_IsRegisteredClass(JSRuntime *rt, JSClassID class_id);
 
@@ -588,7 +596,7 @@ static inline JSValue JS_DupValue(JSContext *ctx, JSValue v)
         JSRefCountHeader *p = (JSRefCountHeader *)JS_VALUE_GET_PTR(v);
         p->ref_count++;
     }
-    return (JSValue)v;
+    return v;
 }
 
 static inline JSValue JS_DupValueRT(JSRuntime *rt, JSValue v)
@@ -597,7 +605,7 @@ static inline JSValue JS_DupValueRT(JSRuntime *rt, JSValue v)
         JSRefCountHeader *p = (JSRefCountHeader *)JS_VALUE_GET_PTR(v);
         p->ref_count++;
     }
-    return (JSValue)v;
+    return v;
 }
 
 JS_EXTERN int JS_ToBool(JSContext *ctx, JSValue val); /* return -1 for JS_EXCEPTION */
@@ -740,6 +748,7 @@ JS_EXTERN JSValue JS_NewArrayBuffer(JSContext *ctx, uint8_t *buf, size_t len,
 JS_EXTERN JSValue JS_NewArrayBufferCopy(JSContext *ctx, const uint8_t *buf, size_t len);
 JS_EXTERN void JS_DetachArrayBuffer(JSContext *ctx, JSValue obj);
 JS_EXTERN uint8_t *JS_GetArrayBuffer(JSContext *ctx, size_t *psize, JSValue obj);
+JS_EXTERN JS_BOOL JS_IsArrayBuffer(JSValue obj);
 JS_EXTERN uint8_t *JS_GetUint8Array(JSContext *ctx, size_t *psize, JSValue obj);
 JS_EXTERN JSValue JS_GetTypedArrayBuffer(JSContext *ctx, JSValue obj,
                                          size_t *pbyte_offset,
@@ -748,6 +757,7 @@ JS_EXTERN JSValue JS_GetTypedArrayBuffer(JSContext *ctx, JSValue obj,
 JS_EXTERN JSValue JS_NewUint8Array(JSContext *ctx, uint8_t *buf, size_t len,
                                    JSFreeArrayBufferDataFunc *free_func, void *opaque,
                                    JS_BOOL is_shared);
+JS_EXTERN JS_BOOL JS_IsUint8Array(JSValue obj);
 JS_EXTERN JSValue JS_NewUint8ArrayCopy(JSContext *ctx, const uint8_t *buf, size_t len);
 typedef struct {
     void *(*sab_alloc)(void *opaque, size_t size);
@@ -791,6 +801,7 @@ JS_EXTERN void JS_SetModuleLoaderFunc(JSRuntime *rt,
 /* return the import.meta object of a module */
 JS_EXTERN JSValue JS_GetImportMeta(JSContext *ctx, JSModuleDef *m);
 JS_EXTERN JSAtom JS_GetModuleName(JSContext *ctx, JSModuleDef *m);
+JSValue JS_GetModuleNamespace(JSContext *ctx, JSModuleDef *m);
 
 /* JS Job support */
 
@@ -968,20 +979,24 @@ JS_EXTERN int JS_SetModuleExportList(JSContext *ctx, JSModuleDef *m,
 
 /* Promise */
 
+#define JS_INVALID_PROMISE_STATE (-1)
+
 typedef enum JSPromiseStateEnum {
     JS_PROMISE_PENDING,
     JS_PROMISE_FULFILLED,
     JS_PROMISE_REJECTED,
 } JSPromiseStateEnum;
 
+/* Returns JSPromiseReactionEnum for the promise or JS_INVALID_PROMISE_STATE if the value is not a promise. */
 JS_EXTERN JSPromiseStateEnum JS_PromiseState(JSContext *ctx, JSValue promise);
+/* Return the result of the promise if the promise's state is in the FULFILLED or REJECTED state. Otherwise returns JS_UNDEFINED. */
 JS_EXTERN JSValue JS_PromiseResult(JSContext *ctx, JSValue promise);
 
 /* Version */
 
 #define QJS_VERSION_MAJOR 0
-#define QJS_VERSION_MINOR 3
-#define QJS_VERSION_PATCH 0
+#define QJS_VERSION_MINOR 4
+#define QJS_VERSION_PATCH 1
 #define QJS_VERSION_SUFFIX ""
 
 JS_EXTERN const char* JS_GetVersion(void);
