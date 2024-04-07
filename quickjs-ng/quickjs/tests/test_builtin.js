@@ -220,6 +220,8 @@ function test()
     assert(Object.isExtensible(a), false, "extensible");
     assert(typeof a.y, "undefined", "extensible");
     assert(err, true, "extensible");
+
+    assert_throws(TypeError, () => Object.setPrototypeOf(Object.prototype, {}));
 }
 
 function test_enum()
@@ -695,6 +697,14 @@ function test_date()
     assert(Date.UTC(2017, 9, 22, 18 - 1e10, 10 + 60e10), 1508695800000);
     assert(Date.UTC(2017, 9, 22, 18, 10 - 1e10, 11 + 60e10), 1508695811000);
     assert(Date.UTC(2017, 9, 22, 18, 10, 11 - 1e12, 91 + 1000e12), 1508695811091);
+    assert(new Date("2024 Apr 7 1:00 AM").toLocaleString(), "04/07/2024, 01:00:00 AM");
+    assert(new Date("2024 Apr 7 2:00 AM").toLocaleString(), "04/07/2024, 02:00:00 AM");
+    assert(new Date("2024 Apr 7 11:00 AM").toLocaleString(), "04/07/2024, 11:00:00 AM");
+    assert(new Date("2024 Apr 7 12:00 AM").toLocaleString(), "04/07/2024, 12:00:00 AM");
+    assert(new Date("2024 Apr 7 1:00 PM").toLocaleString(), "04/07/2024, 01:00:00 PM");
+    assert(new Date("2024 Apr 7 2:00 PM").toLocaleString(), "04/07/2024, 02:00:00 PM");
+    assert(new Date("2024 Apr 7 11:00 PM").toLocaleString(), "04/07/2024, 11:00:00 PM");
+    assert(new Date("2024 Apr 7 12:00 PM").toLocaleString(), "04/07/2024, 12:00:00 PM");
 }
 
 function test_regexp()
@@ -964,6 +974,54 @@ function test_proxy_is_array()
   }
 }
 
+function test_cur_pc()
+{
+    var a = [];
+    Object.defineProperty(a, '1', {
+            get: function() { throw Error("a[1]_get"); },
+            set: function(x) { throw Error("a[1]_set"); }
+            });
+    assert_throws(Error, function() { return a[1]; });
+    assert_throws(Error, function() { a[1] = 1; });
+    assert_throws(Error, function() { return [...a]; });
+    assert_throws(Error, function() { return ({...b} = a); });
+
+    var o = {};
+    Object.defineProperty(o, 'x', {
+            get: function() { throw Error("o.x_get"); },
+            set: function(x) { throw Error("o.x_set"); }
+            });
+    o.valueOf = function() { throw Error("o.valueOf"); };
+    assert_throws(Error, function() { return +o; });
+    assert_throws(Error, function() { return -o; });
+    assert_throws(Error, function() { return o+1; });
+    assert_throws(Error, function() { return o-1; });
+    assert_throws(Error, function() { return o*1; });
+    assert_throws(Error, function() { return o/1; });
+    assert_throws(Error, function() { return o%1; });
+    assert_throws(Error, function() { return o**1; });
+    assert_throws(Error, function() { return o<<1; });
+    assert_throws(Error, function() { return o>>1; });
+    assert_throws(Error, function() { return o>>>1; });
+    assert_throws(Error, function() { return o&1; });
+    assert_throws(Error, function() { return o|1; });
+    assert_throws(Error, function() { return o^1; });
+    assert_throws(Error, function() { return o<1; });
+    assert_throws(Error, function() { return o==1; });
+    assert_throws(Error, function() { return o++; });
+    assert_throws(Error, function() { return o--; });
+    assert_throws(Error, function() { return ++o; });
+    assert_throws(Error, function() { return --o; });
+    assert_throws(Error, function() { return ~o; });
+
+    Object.defineProperty(globalThis, 'xxx', {
+            get: function() { throw Error("xxx_get"); },
+            set: function(x) { throw Error("xxx_set"); }
+            });
+    assert_throws(Error, function() { return xxx; });
+    assert_throws(Error, function() { xxx = 1; });
+}
+
 test();
 test_function();
 test_enum();
@@ -987,3 +1045,4 @@ test_exception_source_pos();
 test_function_source_pos();
 test_exception_prepare_stack();
 test_exception_stack_size_limit();
+test_cur_pc();

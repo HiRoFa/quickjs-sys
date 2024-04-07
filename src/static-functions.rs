@@ -27,6 +27,7 @@ extern "C" {
     fn JS_IsSymbol_real(v: JSValue) -> bool;
     fn JS_IsObject_real(v: JSValue) -> bool;
     fn JS_ToUint32_real(ctx: *mut JSContext, pres: u32, val: JSValue) -> u32;
+    #[cfg(feature = "bellard")]
     fn JS_SetProperty_real(ctx: *mut JSContext, this_obj: JSValue, prop: JSAtom, val: JSValue) -> ::std::os::raw::c_int;
     fn JS_NewCFunction_real(ctx: *mut JSContext, func: *mut JSCFunction, name: *const ::std::os::raw::c_char,length: ::std::os::raw::c_int) -> JSValue;
     fn JS_NewCFunctionMagic_real(ctx: *mut JSContext, func: *mut JSCFunctionMagic, name: *const ::std::os::raw::c_char, length: ::std::os::raw::c_int, cproto: JSCFunctionEnum, magic: ::std::os::raw::c_int) -> JSValue;
@@ -153,6 +154,7 @@ pub unsafe fn JS_ToUint32(ctx: *mut JSContext, pres: u32, val: JSValue) -> u32 {
 }
 
 /// set a property of an object identified by a JSAtom
+#[cfg(feature = "bellard")]
 pub unsafe fn JS_SetProperty(ctx: *mut JSContext, this_obj: JSValue, prop: JSAtom, val: JSValue) -> ::std::os::raw::c_int {
     JS_SetProperty_real(ctx, this_obj, prop, val)
 }

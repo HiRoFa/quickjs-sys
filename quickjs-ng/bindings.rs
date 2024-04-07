@@ -26,6 +26,7 @@ pub const __USE_ATFILE: u32 = 1;
 pub const __USE_FORTIFY_LEVEL: u32 = 0;
 pub const __GLIBC_USE_DEPRECATED_GETS: u32 = 0;
 pub const __GLIBC_USE_DEPRECATED_SCANF: u32 = 0;
+pub const __GLIBC_USE_C2X_STRTOL: u32 = 0;
 pub const _STDC_PREDEF_H: u32 = 1;
 pub const __STDC_IEC_559__: u32 = 1;
 pub const __STDC_IEC_60559_BFP__: u32 = 201404;
@@ -34,7 +35,7 @@ pub const __STDC_IEC_60559_COMPLEX__: u32 = 201404;
 pub const __STDC_ISO_10646__: u32 = 201706;
 pub const __GNU_LIBRARY__: u32 = 6;
 pub const __GLIBC__: u32 = 2;
-pub const __GLIBC_MINOR__: u32 = 37;
+pub const __GLIBC_MINOR__: u32 = 39;
 pub const _SYS_CDEFS_H: u32 = 1;
 pub const __glibc_c99_flexarr_available: u32 = 1;
 pub const __LDOUBLE_REDIRECTS_TO_FLOAT128_ABI: u32 = 0;
@@ -64,6 +65,7 @@ pub const __struct_FILE_defined: u32 = 1;
 pub const _IO_EOF_SEEN: u32 = 16;
 pub const _IO_ERR_SEEN: u32 = 32;
 pub const _IO_USER_LOCK: u32 = 32768;
+pub const __cookie_io_functions_t_defined: u32 = 1;
 pub const _IOFBF: u32 = 0;
 pub const _IOLBF: u32 = 1;
 pub const _IONBF: u32 = 2;
@@ -73,9 +75,9 @@ pub const SEEK_SET: u32 = 0;
 pub const SEEK_CUR: u32 = 1;
 pub const SEEK_END: u32 = 2;
 pub const P_tmpdir: &[u8; 5] = b"/tmp\0";
-pub const _BITS_STDIO_LIM_H: u32 = 1;
 pub const L_tmpnam: u32 = 20;
 pub const TMP_MAX: u32 = 238328;
+pub const _BITS_STDIO_LIM_H: u32 = 1;
 pub const FILENAME_MAX: u32 = 4096;
 pub const L_ctermid: u32 = 9;
 pub const FOPEN_MAX: u32 = 16;
@@ -99,6 +101,7 @@ pub const _STDINT_H: u32 = 1;
 pub const _BITS_WCHAR_H: u32 = 1;
 pub const _BITS_STDINT_INTN_H: u32 = 1;
 pub const _BITS_STDINT_UINTN_H: u32 = 1;
+pub const _BITS_STDINT_LEAST_H: u32 = 1;
 pub const INT8_MIN: i32 = -128;
 pub const INT16_MIN: i32 = -32768;
 pub const INT32_MIN: i32 = -2147483648;
@@ -197,9 +200,9 @@ pub const JS_DEF_OBJECT: u32 = 8;
 pub const JS_DEF_ALIAS: u32 = 9;
 pub const JS_INVALID_PROMISE_STATE: i32 = -1;
 pub const QJS_VERSION_MAJOR: u32 = 0;
-pub const QJS_VERSION_MINOR: u32 = 4;
-pub const QJS_VERSION_PATCH: u32 = 1;
-pub const QJS_VERSION_SUFFIX: &[u8; 1] = b"\0";
+pub const QJS_VERSION_MINOR: u32 = 5;
+pub const QJS_VERSION_PATCH: u32 = 0;
+pub const QJS_VERSION_SUFFIX: &[u8; 4] = b"dev\0";
 pub type __gnuc_va_list = __builtin_va_list;
 pub type __u_char = ::std::os::raw::c_uchar;
 pub type __u_short = ::std::os::raw::c_ushort;
@@ -816,6 +819,95 @@ fn bindgen_test_layout__IO_FILE() {
         )
     );
 }
+pub type cookie_read_function_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        __cookie: *mut ::std::os::raw::c_void,
+        __buf: *mut ::std::os::raw::c_char,
+        __nbytes: usize,
+    ) -> __ssize_t,
+>;
+pub type cookie_write_function_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        __cookie: *mut ::std::os::raw::c_void,
+        __buf: *const ::std::os::raw::c_char,
+        __nbytes: usize,
+    ) -> __ssize_t,
+>;
+pub type cookie_seek_function_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        __cookie: *mut ::std::os::raw::c_void,
+        __pos: *mut __off64_t,
+        __w: ::std::os::raw::c_int,
+    ) -> ::std::os::raw::c_int,
+>;
+pub type cookie_close_function_t = ::std::option::Option<
+    unsafe extern "C" fn(__cookie: *mut ::std::os::raw::c_void) -> ::std::os::raw::c_int,
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct _IO_cookie_io_functions_t {
+    pub read: cookie_read_function_t,
+    pub write: cookie_write_function_t,
+    pub seek: cookie_seek_function_t,
+    pub close: cookie_close_function_t,
+}
+#[test]
+fn bindgen_test_layout__IO_cookie_io_functions_t() {
+    const UNINIT: ::std::mem::MaybeUninit<_IO_cookie_io_functions_t> =
+        ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<_IO_cookie_io_functions_t>(),
+        32usize,
+        concat!("Size of: ", stringify!(_IO_cookie_io_functions_t))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<_IO_cookie_io_functions_t>(),
+        8usize,
+        concat!("Alignment of ", stringify!(_IO_cookie_io_functions_t))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).read) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(_IO_cookie_io_functions_t),
+            "::",
+            stringify!(read)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).write) as usize - ptr as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(_IO_cookie_io_functions_t),
+            "::",
+            stringify!(write)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).seek) as usize - ptr as usize },
+        16usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(_IO_cookie_io_functions_t),
+            "::",
+            stringify!(seek)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).close) as usize - ptr as usize },
+        24usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(_IO_cookie_io_functions_t),
+            "::",
+            stringify!(close)
+        )
+    );
+}
+pub type cookie_io_functions_t = _IO_cookie_io_functions_t;
 pub type va_list = __gnuc_va_list;
 pub type off_t = __off_t;
 pub type fpos_t = __fpos_t;
@@ -885,6 +977,13 @@ extern "C" {
 extern "C" {
     pub fn fdopen(__fd: ::std::os::raw::c_int, __modes: *const ::std::os::raw::c_char)
         -> *mut FILE;
+}
+extern "C" {
+    pub fn fopencookie(
+        __magic_cookie: *mut ::std::os::raw::c_void,
+        __modes: *const ::std::os::raw::c_char,
+        __io_funcs: cookie_io_functions_t,
+    ) -> *mut FILE;
 }
 extern "C" {
     pub fn fmemopen(
@@ -967,6 +1066,27 @@ extern "C" {
         __maxlen: ::std::os::raw::c_ulong,
         __format: *const ::std::os::raw::c_char,
         __arg: *mut __va_list_tag,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn vasprintf(
+        __ptr: *mut *mut ::std::os::raw::c_char,
+        __f: *const ::std::os::raw::c_char,
+        __arg: *mut __va_list_tag,
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn __asprintf(
+        __ptr: *mut *mut ::std::os::raw::c_char,
+        __fmt: *const ::std::os::raw::c_char,
+        ...
+    ) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn asprintf(
+        __ptr: *mut *mut ::std::os::raw::c_char,
+        __fmt: *const ::std::os::raw::c_char,
+        ...
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
@@ -2495,7 +2615,7 @@ extern "C" {
     pub fn JS_IsRegisteredClass(rt: *mut JSRuntime, class_id: JSClassID) -> ::std::os::raw::c_int;
 }
 extern "C" {
-    pub fn JS_NewFloat64(ctx: *mut JSContext, d: f64) -> JSValue;
+    pub fn JS_NewNumber(ctx: *mut JSContext, d: f64) -> JSValue;
 }
 extern "C" {
     pub fn JS_NewBigInt64(ctx: *mut JSContext, v: i64) -> JSValue;
@@ -2661,13 +2781,13 @@ extern "C" {
     pub fn JS_NewDate(ctx: *mut JSContext, epoch_ms: f64) -> JSValue;
 }
 extern "C" {
-    pub fn JS_GetPropertyInternal(
-        ctx: *mut JSContext,
-        obj: JSValue,
-        prop: JSAtom,
-        receiver: JSValue,
-        throw_ref_error: ::std::os::raw::c_int,
-    ) -> JSValue;
+    pub fn JS_GetProperty(ctx: *mut JSContext, this_obj: JSValue, prop: JSAtom) -> JSValue;
+}
+extern "C" {
+    pub fn JS_GetPropertyUint32(ctx: *mut JSContext, this_obj: JSValue, idx: u32) -> JSValue;
+}
+extern "C" {
+    pub fn JS_GetPropertyInt64(ctx: *mut JSContext, this_obj: JSValue, idx: i64) -> JSValue;
 }
 extern "C" {
     pub fn JS_GetPropertyStr(
@@ -2677,15 +2797,11 @@ extern "C" {
     ) -> JSValue;
 }
 extern "C" {
-    pub fn JS_GetPropertyUint32(ctx: *mut JSContext, this_obj: JSValue, idx: u32) -> JSValue;
-}
-extern "C" {
-    pub fn JS_SetPropertyInternal(
+    pub fn JS_SetProperty(
         ctx: *mut JSContext,
         this_obj: JSValue,
         prop: JSAtom,
         val: JSValue,
-        flags: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
@@ -3048,6 +3164,13 @@ extern "C" {
 }
 extern "C" {
     pub fn JS_NewPromiseCapability(ctx: *mut JSContext, resolving_funcs: *mut JSValue) -> JSValue;
+}
+extern "C" {
+    pub fn JS_NewSymbol(
+        ctx: *mut JSContext,
+        description: *const ::std::os::raw::c_char,
+        is_global: ::std::os::raw::c_int,
+    ) -> JSValue;
 }
 pub type JSHostPromiseRejectionTracker = ::std::option::Option<
     unsafe extern "C" fn(

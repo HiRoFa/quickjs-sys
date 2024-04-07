@@ -29,8 +29,10 @@
 #include <string.h>
 #include <inttypes.h>
 
-#if defined(_MSC_VER)
+#if defined(_WIN32)
 #include <windows.h>
+#endif
+#if defined(_MSC_VER)
 #include <winsock2.h>
 #include <malloc.h>
 #define alloca _alloca
@@ -38,14 +40,15 @@
 #endif
 #if defined(__APPLE__)
 #include <malloc/malloc.h>
-#elif defined(__ANDROID__)
-#include <dlmalloc.h>
-#elif defined(__linux__) || defined(__CYGWIN__)
+#elif defined(__linux__) || defined(__ANDROID__) || defined(__CYGWIN__)
 #include <malloc.h>
 #elif defined(__FreeBSD__)
 #include <malloc_np.h>
 #endif
-
+#if !defined(_WIN32)
+#include <errno.h>
+#include <pthread.h>
+#endif
 
 #if defined(_MSC_VER) && !defined(__clang__)
 #  define likely(x)       (x)
@@ -381,14 +384,29 @@ static inline void dbuf_set_error(DynBuf *s)
 int unicode_to_utf8(uint8_t *buf, unsigned int c);
 int unicode_from_utf8(const uint8_t *p, int max_len, const uint8_t **pp);
 
+static inline BOOL is_surrogate(uint32_t c)
+{
+    return (c >> 11) == (0xD800 >> 11); // 0xD800-0xDFFF
+}
+
 static inline BOOL is_hi_surrogate(uint32_t c)
 {
-    return 54 == (c >> 10); // 0xD800-0xDBFF
+    return (c >> 10) == (0xD800 >> 10); // 0xD800-0xDBFF
 }
 
 static inline BOOL is_lo_surrogate(uint32_t c)
 {
-    return 55 == (c >> 10); // 0xDC00-0xDFFF
+    return (c >> 10) == (0xDC00 >> 10); // 0xDC00-0xDFFF
+}
+
+static inline uint32_t get_hi_surrogate(uint32_t c)
+{
+    return (c >> 10) - (0x10000 >> 10) + 0xD800;
+}
+
+static inline uint32_t get_lo_surrogate(uint32_t c)
+{
+    return (c & 0x3FF) | 0xDC00;
 }
 
 static inline uint32_t from_surrogate(uint32_t hi, uint32_t lo)
@@ -421,13 +439,43 @@ static inline size_t js__malloc_usable_size(const void *ptr)
     return malloc_size(ptr);
 #elif defined(_WIN32)
     return _msize((void *)ptr);
-#elif defined(__ANDROID__)
-    return dlmalloc_usable_size((void *)ptr);
-#elif defined(__linux__) || defined(__FreeBSD__)
+#elif defined(__linux__) || defined(__ANDROID__) || defined(__CYGWIN__) || defined(__FreeBSD__)
     return malloc_usable_size((void *)ptr);
 #else
     return 0;
 #endif
 }
+
+/* Cross-platform threading APIs. */
+
+#if !defined(EMSCRIPTEN) && !defined(__wasi__)
+
+#if defined(_WIN32)
+#define JS_ONCE_INIT INIT_ONCE_STATIC_INIT
+typedef INIT_ONCE js_once_t;
+typedef CRITICAL_SECTION js_mutex_t;
+typedef CONDITION_VARIABLE js_cond_t;
+#else
+#define JS_ONCE_INIT PTHREAD_ONCE_INIT
+typedef pthread_once_t js_once_t;
+typedef pthread_mutex_t js_mutex_t;
+typedef pthread_cond_t js_cond_t;
+#endif
+
+void js_once(js_once_t *guard, void (*callback)(void));
+
+void js_mutex_init(js_mutex_t *mutex);
+void js_mutex_destroy(js_mutex_t *mutex);
+void js_mutex_lock(js_mutex_t *mutex);
+void js_mutex_unlock(js_mutex_t *mutex);
+
+void js_cond_init(js_cond_t *cond);
+void js_cond_destroy(js_cond_t *cond);
+void js_cond_signal(js_cond_t *cond);
+void js_cond_broadcast(js_cond_t *cond);
+void js_cond_wait(js_cond_t *cond, js_mutex_t *mutex);
+int js_cond_timedwait(js_cond_t *cond, js_mutex_t *mutex, uint64_t timeout);
+
+#endif /* !defined(EMSCRIPTEN) && !defined(__wasi__) */
 
 #endif  /* CUTILS_H */

@@ -205,7 +205,6 @@ static inline JS_BOOL JS_VALUE_IS_NAN(JSValue v)
 #define JS_VALUE_IS_BOTH_FLOAT(v1, v2) (JS_TAG_IS_FLOAT64(JS_VALUE_GET_TAG(v1)) && JS_TAG_IS_FLOAT64(JS_VALUE_GET_TAG(v2)))
 
 #define JS_VALUE_GET_OBJ(v) ((JSObject *)JS_VALUE_GET_PTR(v))
-#define JS_VALUE_GET_STRING(v) ((JSString *)JS_VALUE_GET_PTR(v))
 #define JS_VALUE_HAS_REF_COUNT(v) ((unsigned)JS_VALUE_GET_TAG(v) >= (unsigned)JS_TAG_FIRST)
 
 /* special values */
@@ -474,6 +473,11 @@ static js_force_inline JSValue JS_NewInt32(JSContext *ctx, int32_t val)
     return JS_MKVAL(JS_TAG_INT, val);
 }
 
+static js_force_inline JSValue JS_NewFloat64(JSContext *ctx, double val)
+{
+    return __JS_NewFloat64(val);
+}
+
 static js_force_inline JSValue JS_NewCatchOffset(JSContext *ctx, int32_t val)
 {
     return JS_MKVAL(JS_TAG_CATCH_OFFSET, val);
@@ -482,10 +486,10 @@ static js_force_inline JSValue JS_NewCatchOffset(JSContext *ctx, int32_t val)
 static js_force_inline JSValue JS_NewInt64(JSContext *ctx, int64_t val)
 {
     JSValue v;
-    if (val == (int32_t)val) {
+    if (val >= INT32_MIN && val <= INT32_MAX) {
         v = JS_NewInt32(ctx, val);
     } else {
-        v = __JS_NewFloat64(val);
+        v = JS_NewFloat64(ctx, val);
     }
     return v;
 }
@@ -496,12 +500,12 @@ static js_force_inline JSValue JS_NewUint32(JSContext *ctx, uint32_t val)
     if (val <= 0x7fffffff) {
         v = JS_NewInt32(ctx, val);
     } else {
-        v = __JS_NewFloat64(val);
+        v = JS_NewFloat64(ctx, val);
     }
     return v;
 }
 
-JS_EXTERN JSValue JS_NewFloat64(JSContext *ctx, double d);
+JS_EXTERN JSValue JS_NewNumber(JSContext *ctx, double d);
 JS_EXTERN JSValue JS_NewBigInt64(JSContext *ctx, int64_t v);
 JS_EXTERN JSValue JS_NewBigUint64(JSContext *ctx, uint64_t v);
 
@@ -652,27 +656,16 @@ JS_EXTERN int JS_IsArray(JSContext *ctx, JSValue val);
 
 JS_EXTERN JSValue JS_NewDate(JSContext *ctx, double epoch_ms);
 
-JS_EXTERN JSValue JS_GetPropertyInternal(JSContext *ctx, JSValue obj,
-                                         JSAtom prop, JSValue receiver,
-                                         JS_BOOL throw_ref_error);
-static js_force_inline JSValue JS_GetProperty(JSContext *ctx, JSValue this_obj,
-                                              JSAtom prop)
-{
-    return JS_GetPropertyInternal(ctx, this_obj, prop, this_obj, 0);
-}
-JS_EXTERN JSValue JS_GetPropertyStr(JSContext *ctx, JSValue this_obj,
-                                    const char *prop);
+JS_EXTERN JSValue JS_GetProperty(JSContext *ctx, JSValue this_obj, JSAtom prop);
 JS_EXTERN JSValue JS_GetPropertyUint32(JSContext *ctx, JSValue this_obj,
                                        uint32_t idx);
+JS_EXTERN JSValue JS_GetPropertyInt64(JSContext *ctx, JSValue this_obj,
+                                      int64_t idx);
+JS_EXTERN JSValue JS_GetPropertyStr(JSContext *ctx, JSValue this_obj,
+                                    const char *prop);
 
-int JS_SetPropertyInternal(JSContext *ctx, JSValue this_obj,
-                           JSAtom prop, JSValue val,
-                           int flags);
-static inline int JS_SetProperty(JSContext *ctx, JSValue this_obj,
-                                 JSAtom prop, JSValue val)
-{
-    return JS_SetPropertyInternal(ctx, this_obj, prop, val, JS_PROP_THROW);
-}
+JS_EXTERN int JS_SetProperty(JSContext *ctx, JSValue this_obj,
+                             JSAtom prop, JSValue val);
 JS_EXTERN int JS_SetPropertyUint32(JSContext *ctx, JSValue this_obj,
                                    uint32_t idx, JSValue val);
 JS_EXTERN int JS_SetPropertyInt64(JSContext *ctx, JSValue this_obj,
@@ -768,6 +761,8 @@ typedef struct {
 JS_EXTERN void JS_SetSharedArrayBufferFunctions(JSRuntime *rt, const JSSharedArrayBufferFunctions *sf);
 
 JS_EXTERN JSValue JS_NewPromiseCapability(JSContext *ctx, JSValue *resolving_funcs);
+
+JS_EXTERN JSValue JS_NewSymbol(JSContext *ctx, const char *description, JS_BOOL is_global);
 
 /* is_handled = TRUE means that the rejection is handled */
 typedef void JSHostPromiseRejectionTracker(JSContext *ctx, JSValue promise,
@@ -995,9 +990,9 @@ JS_EXTERN JSValue JS_PromiseResult(JSContext *ctx, JSValue promise);
 /* Version */
 
 #define QJS_VERSION_MAJOR 0
-#define QJS_VERSION_MINOR 4
-#define QJS_VERSION_PATCH 1
-#define QJS_VERSION_SUFFIX ""
+#define QJS_VERSION_MINOR 5
+#define QJS_VERSION_PATCH 0
+#define QJS_VERSION_SUFFIX "dev"
 
 JS_EXTERN const char* JS_GetVersion(void);
 

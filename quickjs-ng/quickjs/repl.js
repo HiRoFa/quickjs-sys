@@ -39,7 +39,6 @@ import * as os from "os";
     var Math = g.Math;
     var JSON = g.JSON;
     var isFinite = g.isFinite;
-    var parseFloat = g.parseFloat;
 
     var colors = {
         none:    "\x1b[0m",
@@ -79,9 +78,6 @@ import * as os from "os";
 
     var history = [];
     var clip_board = "";
-    var prec;
-    var expBits;
-    var log2_10;
     
     var pstate = "";
     var prompt = "";
@@ -555,51 +551,60 @@ import * as os from "os";
         cursor_pos = 0;
     }
 
-    function get_context_word(line, pos) {
-        var s = "";
-        while (pos > 0 && is_word(line[pos - 1])) {
+    function get_context_word(line, end) {
+        var pos = end;
+        while (pos > 0 && is_word(line[pos - 1]))
             pos--;
-            s = line[pos] + s;
-        }
-        return s;
+        return line.slice(pos, end);
     }
     function get_context_object(line, pos) {
-        var obj, base, c;
-        if (pos <= 0 || " ~!%^&*(-+={[|:;,<>?/".indexOf(line[pos - 1]) >= 0)
+        if (pos <= 0)
             return g;
-        if (pos >= 2 && line[pos - 1] === ".") {
+        var c = line[pos - 1];
+        if (pos === 1 && c === '\\')
+            return directives;
+        if ("'\"`@#)]}\\".indexOf(c) >= 0)
+            return void 0;
+        if (pos >= 2 && c === ".") {
             pos--;
-            obj = {};
             switch (c = line[pos - 1]) {
             case '\'':
             case '\"':
+            case '`':
                 return "a";
             case ']':
-                return [];
-            case '}':
-                return {};
+                return [];  // incorrect for a[b].<TAB>
             case '/':
                 return / /;
             default:
                 if (is_word(c)) {
-                    base = get_context_word(line, pos);
-                    if (["true", "false", "null", "this"].includes(base) || !isNaN(+base))
-                        return eval(base);
-                    // Check if `base` is a set of regexp flags
-                    if (pos - base.length >= 3 && line[pos - base.length - 1] === '/')
-                        return new RegExp('', base);
-                    obj = get_context_object(line, pos - base.length);
+                    var base = get_context_word(line, pos);
+                    var base_pos = pos - base.length;
+                    if (base === 'true' || base === 'false')
+                        return true;
+                    if (base === 'null')
+                        return null;
+                    if (base === 'this')
+                        return g;
+                    if (!isNaN(+base))  // number literal, incorrect for 1.<TAB>
+                        return 0;
+                    var obj = get_context_object(line, base_pos);
                     if (obj === null || obj === void 0)
                         return obj;
-                    if (obj === g && obj[base] === void 0)
-                        return eval(base);
-                    else
+                    if (typeof obj[base] !== 'undefined')
                         return obj[base];
+                    // Check if `base` is a set of regexp flags
+                    // TODO(chqrlie): this is incorrect for a/i<TAB>...
+                    // Should use colorizer to determine the token type
+                    if (base_pos >= 3 && line[base_pos - 1] === '/' && base.match(/^[dgimsuvy]+$/))
+                        return RegExp();
+                    // base is a local identifier, complete as generic object
                 }
-                return {};
+                break;
             }
+            return {};
         }
-        return void 0;
+        return g;
     }
 
     function get_completions(line, pos) {
@@ -942,6 +947,8 @@ import * as os from "os";
                     std.puts("[circular]");
                 } else if (a instanceof Date) {
                     std.puts(`Date ${JSON.stringify(a.toGMTString())}`);
+                } else if (a instanceof RegExp) {
+                    std.puts(a.toString());
                 } else {
                     stack.push(a);
                     if (Array.isArray(a)) {
@@ -961,8 +968,6 @@ import * as os from "os";
                             }
                         }
                         std.puts(" ]");
-                    } else if (a instanceof RegExp) {
-                        std.puts(a.toString());
                     } else {
                         keys = Object.keys(a);
                         n = keys.length;
@@ -1011,8 +1016,6 @@ import * as os from "os";
 
     /* return true if the string after cmd can be evaluted as JS */
     function handle_directive(cmd, expr) {
-        var param, prec1, expBits1;
-        
         if (cmd === "h" || cmd === "?" || cmd == "help") {
             help();
         } else if (cmd === "load") {
@@ -1049,6 +1052,10 @@ import * as os from "os";
                   "\\clear      clear the terminal\n" +
                   "\\q          exit\n");
     }
+
+    var directives = Object.setPrototypeOf({
+        h: "h", help: "help", load: "load", x: "x", d: "d", t: "t",
+        clear: "clear", q: "q" }, null);
 
     function eval_and_print(expr) {
         var result;

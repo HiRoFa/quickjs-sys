@@ -160,6 +160,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
+      # ASLR with big PIE slides does not work well with [AM]San
+      - name: disable ASLR
+        run: |
+          sudo sysctl -w kernel.randomize_va_space=0
       - name: build
         run: |
           make CONFIG_ASAN=ON
@@ -179,6 +183,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
+      # ASLR with big PIE slides does not work well with [AM]San
+      - name: disable ASLR
+        run: |
+          sudo sysctl -w kernel.randomize_va_space=0
       - name: build
         env:
           CC: clang
@@ -208,13 +216,39 @@ jobs:
           UBSAN_OPTIONS: halt_on_error=1
         run: |
           time make test262
+  linux-tcc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: install TCC
+        run: |
+          pushd /tmp
+          git clone https://repo.or.cz/tinycc.git
+          cd tinycc
+          git checkout 9d2068c6309dc50dfdbbc30a5d6757683d3f884c
+          ./configure
+          make
+          sudo make install
+          tcc -v
+          popd
+      - name: build
+        env:
+          CC: tcc
+        run: |
+          make
+      - name: stats
+        run: |
+          make stats
 
   macos:
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         buildType: [Debug, Release]
+        os: [macos-12, macos-14]
     steps:
       - uses: actions/checkout@v4
       - name: build
@@ -227,7 +261,11 @@ jobs:
         run: |
           make test
   macos-examples:
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-12, macos-14]
     steps:
       - uses: actions/checkout@v4
       - name: build
@@ -249,7 +287,11 @@ jobs:
           ./build/qjs tests/test_bjson.js
           ./build/function_source
   macos-shared:
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-12, macos-14]
     steps:
       - uses: actions/checkout@v4
       - name: build
@@ -260,7 +302,11 @@ jobs:
         run: |
           make stats
   macos-asan:
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-12, macos-14]
     steps:
       - uses: actions/checkout@v4
       - name: build
@@ -272,7 +318,11 @@ jobs:
         run: |
           make test
   macos-ubsan:
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-12, macos-14]
     steps:
       - uses: actions/checkout@v4
       - name: build
@@ -294,23 +344,23 @@ jobs:
       - uses: actions/checkout@v4
       - name: build
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=${{matrix.buildType}} -G "Visual Studio 17 2022"
-          cmake --build build --target qjs_exe
-          cmake --build build --target function_source
+          cmake -B build -G "Visual Studio 17 2022"
+          cmake --build build --config ${{matrix.buildType}} --target qjs_exe
+          cmake --build build --config ${{matrix.buildType}} --target function_source
       - name: stats
         run: |
-          build\Debug\qjs.exe -qd
+          build\${{matrix.buildType}}\qjs.exe -qd
       - name: test
         run: |
-          build\Debug\qjs.exe tests\test_bigint.js
-          build\Debug\qjs.exe tests\test_closure.js
-          build\Debug\qjs.exe tests\test_language.js
-          build\Debug\qjs.exe tests\test_builtin.js
-          build\Debug\qjs.exe tests\test_loop.js
-          build\Debug\qjs.exe tests\test_std.js
-          build\Debug\qjs.exe tests\test_worker.js
-          build\Debug\qjs.exe tests\test_queue_microtask.js
-          build\Debug\function_source.exe
+          build\${{matrix.buildType}}\qjs.exe tests\test_bigint.js
+          build\${{matrix.buildType}}\qjs.exe tests\test_closure.js
+          build\${{matrix.buildType}}\qjs.exe tests\test_language.js
+          build\${{matrix.buildType}}\qjs.exe tests\test_builtin.js
+          build\${{matrix.buildType}}\qjs.exe tests\test_loop.js
+          build\${{matrix.buildType}}\qjs.exe tests\test_std.js
+          build\${{matrix.buildType}}\qjs.exe tests\test_worker.js
+          build\${{matrix.buildType}}\qjs.exe tests\test_queue_microtask.js
+          build\${{matrix.buildType}}\function_source.exe
 
   windows-clang:
     runs-on: windows-latest
@@ -322,23 +372,55 @@ jobs:
       - uses: actions/checkout@v4
       - name: build
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=${{matrix.buildType}} -G "Visual Studio 17 2022" -T ClangCL
+          cmake -B build -G "Visual Studio 17 2022" -T ClangCL
+          cmake --build build --config ${{matrix.buildType}} --target qjs_exe
+          cmake --build build --config ${{matrix.buildType}} --target function_source
+      - name: stats
+        run: |
+          build\${{matrix.buildType}}\qjs.exe -qd
+      - name: test
+        run: |
+          build\${{matrix.buildType}}\qjs.exe tests\test_bigint.js
+          build\${{matrix.buildType}}\qjs.exe tests\test_closure.js
+          build\${{matrix.buildType}}\qjs.exe tests\test_language.js
+          build\${{matrix.buildType}}\qjs.exe tests\test_builtin.js
+          build\${{matrix.buildType}}\qjs.exe tests\test_loop.js
+          build\${{matrix.buildType}}\qjs.exe tests\test_std.js
+          build\${{matrix.buildType}}\qjs.exe tests\test_worker.js
+          build\${{matrix.buildType}}\qjs.exe tests\test_queue_microtask.js
+          build\${{matrix.buildType}}\function_source.exe
+
+  windows-ninja:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        buildType: [Debug, Release]
+    steps:
+      - uses: actions/checkout@v4
+      - name: install ninja
+        run: |
+          choco install ninja
+          ninja.exe --version
+      - name: build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=${{matrix.buildType}} -G "Ninja"
           cmake --build build --target qjs_exe
           cmake --build build --target function_source
       - name: stats
         run: |
-          cmd /r build\Debug\qjs.exe -qd
+          build\qjs.exe -qd
       - name: test
         run: |
-          cmd /r build\Debug\qjs.exe tests\test_bigint.js
-          cmd /r build\Debug\qjs.exe tests\test_closure.js
-          cmd /r build\Debug\qjs.exe tests\test_language.js
-          cmd /r build\Debug\qjs.exe tests\test_builtin.js
-          cmd /r build\Debug\qjs.exe tests\test_loop.js
-          cmd /r build\Debug\qjs.exe tests\test_std.js
-          cmd /r build\Debug\qjs.exe tests\test_worker.js
-          cmd /r build\Debug\qjs.exe tests\test_queue_microtask.js
-          cmd /r build\Debug\function_source.exe
+          build\qjs.exe tests\test_bigint.js
+          build\qjs.exe tests\test_closure.js
+          build\qjs.exe tests\test_language.js
+          build\qjs.exe tests\test_builtin.js
+          build\qjs.exe tests\test_loop.js
+          build\qjs.exe tests\test_std.js
+          build\qjs.exe tests\test_worker.js
+          build\qjs.exe tests\test_queue_microtask.js
+          build\function_source.exe
 
   windows-mingw:
     runs-on: windows-latest
@@ -499,3 +581,19 @@ jobs:
             gmake
             gmake stats
             gmake test
+
+  android:
+    runs-on: ubuntu-latest
+    container: reactnativecommunity/react-native-android:v13.0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure android arm64
+        # see build options you can use in https://developer.android.com/ndk/guides/cmake
+        run: |
+          mkdir build
+          cd build
+          $ANDROID_HOME/cmake/3.22.1/bin/cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_HOME/ndk/26.0.10792818/build/cmake/android.toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DANDROID_ABI="arm64-v8a" -DANDROID_PLATFORM=android-24 -DBUILD_QJS_LIBC=ON ..
+      - name: Build android arm64
+        run: |
+          $ANDROID_HOME/cmake/3.22.1/bin/cmake --build build --target qjs
+          ls -lh build
