@@ -8,19 +8,17 @@ fn exists(path: impl AsRef<Path>) -> bool {
 
 const LIB_NAME: &str = "quickjs";
 
-#[cfg(all(not(feature = "bellard"), not(feature = "quickjs-ng"), not(feature = "openwebf")))]
+#[cfg(all(not(feature = "bellard"), not(feature = "quickjs-ng")))]
 fn main() {
-    panic!("Invalid config for crate libquickjs-sys: must enable either the 'bellard', the 'quickjs-ng' or the 'openwebf' feature");
+    panic!("Invalid config for crate libquickjs-sys: must enable either the 'bellard' or the 'quickjs-ng' feature");
 }
 
-#[cfg(any(feature = "bellard", feature = "quickjs-ng", feature = "openwebf"))]
+#[cfg(any(feature = "bellard", feature = "quickjs-ng"))]
 fn main() {
     #[cfg(feature = "bellard")]
     let embed_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("bellard");
     #[cfg(feature = "quickjs-ng")]
         let embed_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("quickjs-ng");
-    #[cfg(feature = "openwebf")]
-        let embed_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("openwebf");
 
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
 

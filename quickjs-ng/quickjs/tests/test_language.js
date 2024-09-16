@@ -5,6 +5,10 @@ function assert(actual, expected, message) {
     if (actual === expected)
         return;
 
+    if (typeof actual == 'number' && isNaN(actual)
+    &&  typeof expected == 'number' && isNaN(expected))
+        return;
+
     if (actual !== null && expected !== null
     &&  typeof actual == 'object' && typeof expected == 'object'
     &&  actual.toString() === expected.toString())
@@ -20,7 +24,14 @@ function assert_throws(expected_error, func, message)
     var err = false;
     var msg = message ? " (" + message + ")" : "";
     try {
-        func();
+        switch (typeof func) {
+        case 'string':
+            eval(func);
+            break;
+        case 'function':
+            func();
+            break;
+        }
     } catch(e) {
         err = true;
         if (!(e instanceof expected_error)) {
@@ -336,6 +347,13 @@ function test_class()
     assert(S.x === 42);
     assert(S.y === 42);
     assert(S.z === 42);
+    
+    class P {
+        get = () => "123";
+        static() { return 42; }
+    }
+    assert(new P().get() === "123");
+    assert(new P().static() === 42);
 };
 
 function test_template()
@@ -363,8 +381,9 @@ function test_template_skip()
 function test_object_literal()
 {
     var x = 0, get = 1, set = 2; async = 3;
-    a = { get: 2, set: 3, async: 4 };
-    assert(JSON.stringify(a), '{"get":2,"set":3,"async":4}');
+    a = { get: 2, set: 3, async: 4, get a(){ return this.get} };
+    assert(JSON.stringify(a), '{"get":2,"set":3,"async":4,"a":2}');
+    assert(a.a === 2);
 
     a = { x, get, set, async };
     assert(JSON.stringify(a), '{"x":0,"get":1,"set":2,"async":3}');
@@ -541,7 +560,7 @@ function test_function_expr_name()
 
 function test_expr(expr, err) {
     if (err)
-        assert_throws(err, () => eval(expr), `for ${expr}`);
+        assert_throws(err, expr, `for ${expr}`);
     else
         assert(1, eval(expr), `for ${expr}`);
 }
@@ -593,6 +612,53 @@ function test_reserved_names()
     test_name('static', SyntaxError);
 }
 
+function test_number_literals()
+{
+    assert(0.1.a, undefined);
+    assert(0x1.a, undefined);
+    assert(0b1.a, undefined);
+    assert(01.a, undefined);
+    assert(0o1.a, undefined);
+    test_expr('0.a', SyntaxError);
+    assert(parseInt("0_1"), 0);
+    assert(parseInt("1_0"), 1);
+    assert(parseInt("0_1", 8), 0);
+    assert(parseInt("1_0", 8), 1);
+    assert(parseFloat("0_1"), 0);
+    assert(parseFloat("1_0"), 1);
+    assert(1_0, 10);
+    assert(parseInt("Infinity"), NaN);
+    assert(parseFloat("Infinity"), Infinity);
+    assert(parseFloat("Infinity1"), Infinity);
+    assert(parseFloat("Infinity_"), Infinity);
+    assert(parseFloat("Infinity."), Infinity);
+    test_expr('0_0', SyntaxError);
+    test_expr('00_0', SyntaxError);
+    test_expr('01_0', SyntaxError);
+    test_expr('08_0', SyntaxError);
+    test_expr('09_0', SyntaxError);
+}
+
+function test_syntax()
+{
+    assert_throws(SyntaxError, "do");
+    assert_throws(SyntaxError, "do;");
+    assert_throws(SyntaxError, "do{}");
+    assert_throws(SyntaxError, "if");
+    assert_throws(SyntaxError, "if\n");
+    assert_throws(SyntaxError, "if 1");
+    assert_throws(SyntaxError, "if \0");
+    assert_throws(SyntaxError, "if ;");
+    assert_throws(SyntaxError, "if 'abc'");
+    assert_throws(SyntaxError, "if `abc`");
+    assert_throws(SyntaxError, "if /abc/");
+    assert_throws(SyntaxError, "if abc");
+    assert_throws(SyntaxError, "if abc\u0064");
+    assert_throws(SyntaxError, "if abc\\u0064");
+    assert_throws(SyntaxError, "if \u0123");
+    assert_throws(SyntaxError, "if \\u0123");
+}
+
 test_op1();
 test_cvt();
 test_eq();
@@ -613,3 +679,5 @@ test_function_length();
 test_argument_scope();
 test_function_expr_name();
 test_reserved_names();
+test_number_literals();
+test_syntax();

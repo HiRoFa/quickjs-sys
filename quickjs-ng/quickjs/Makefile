@@ -53,6 +53,9 @@ $(QJS): $(BUILD_DIR)
 $(QJSC): $(BUILD_DIR)
 	cmake --build $(BUILD_DIR) --target qjsc -j $(JOBS)
 
+$(BUILD_DIR)/test_conv: $(BUILD_DIR) tests/test_conv.c
+	cmake --build $(BUILD_DIR) --target test_conv
+
 install: $(QJS) $(QJSC)
 	cmake --build $(BUILD_DIR) --target install
 
@@ -61,7 +64,7 @@ clean:
 	cmake --build $(BUILD_DIR) --target clean
 
 codegen: $(QJSC)
-	$(QJSC) -o gen/repl.c -m repl.js
+	$(QJSC) -ss -o gen/repl.c -m repl.js
 	$(QJSC) -e -o gen/function_source.c tests/function_source.js
 	$(QJSC) -e -o gen/hello.c examples/hello.js
 	$(QJSC) -e -o gen/hello_module.c -m examples/hello_module.js
@@ -86,8 +89,14 @@ test: $(QJS)
 	$(QJS) tests/test_worker.js
 	$(QJS) tests/test_queue_microtask.js
 
+testconv: $(BUILD_DIR)/test_conv
+	$(BUILD_DIR)/test_conv
+
 test262: $(QJS)
 	$(RUN262) -m -c test262.conf -a
+
+test262-fast: $(QJS)
+	$(RUN262) -m -c test262.conf -c test262-fast.conf -a
 
 test262-update: $(QJS)
 	$(RUN262) -u -c test262.conf -a

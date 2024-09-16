@@ -434,17 +434,17 @@ function test_number()
     assert(Number.isNaN(Number("-")));
     assert(Number.isNaN(Number("\x00a")));
 
-    // TODO: Fix rounding errors on Windows/Cygwin.
-    if (['win32', 'cygwin'].includes(os.platform)) {
-        return;
-    }
-
+    assert((1-2**-53).toString(12), "0.bbbbbbbbbbbbbba");
+    assert((1000000000000000128).toString(), "1000000000000000100");
+    assert((1000000000000000128).toFixed(0), "1000000000000000128");
     assert((25).toExponential(0), "3e+1");
     assert((-25).toExponential(0), "-3e+1");
     assert((2.5).toPrecision(1), "3");
     assert((-2.5).toPrecision(1), "-3");
     assert((1.125).toFixed(2), "1.13");
     assert((-1.125).toFixed(2), "-1.13");
+    assert((0.5).toFixed(0), "1");
+    assert((-0.5).toFixed(0), "-1");
 }
 
 function test_eval2()
@@ -516,7 +516,7 @@ function test_eval()
 
 function test_typed_array()
 {
-    var buffer, a, i, str;
+    var buffer, a, i, str, b;
 
     a = new Uint8Array(4);
     assert(a.length, 4);
@@ -569,6 +569,17 @@ function test_typed_array()
     assert(a.toString(), "1,2,3,4");
     a.set([10, 11], 2);
     assert(a.toString(), "1,2,10,11");
+
+    a = new Uint8Array(buffer, 0, 4);
+    a.constructor = {
+      [Symbol.species]: function (len) {
+        return new Uint8Array(buffer, 1, len);
+      },
+    };
+    b = a.slice();
+    assert(a.buffer, b.buffer);
+    assert(a.toString(), "0,0,0,255");
+    assert(b.toString(), "0,0,255,255");
 }
 
 function test_json()

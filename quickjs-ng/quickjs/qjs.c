@@ -58,6 +58,7 @@ static int eval_buf(JSContext *ctx, const void *buf, int buf_len,
             js_module_set_import_meta(ctx, val, TRUE, TRUE);
             val = JS_EvalFunction(ctx, val);
         }
+        val = js_std_await(ctx, val);
     } else {
         val = JS_Eval(ctx, buf, buf_len, filename, eval_flags);
     }
@@ -94,6 +95,35 @@ static int eval_file(JSContext *ctx, const char *filename, int module)
     ret = eval_buf(ctx, buf, buf_len, filename, eval_flags);
     js_free(ctx, buf);
     return ret;
+}
+
+static int64_t parse_limit(const char *arg) {
+    char *p;
+    unsigned long unit = 1024; /* default to traditional KB */
+    double d = strtod(arg, &p);
+
+    if (p == arg) {
+        fprintf(stderr, "Invalid limit: %s\n", arg);
+        return -1;
+    }
+
+    if (*p) {
+        switch (*p++) {
+        case 'b': case 'B': unit = 1UL <<  0; break;
+        case 'k': case 'K': unit = 1UL << 10; break; /* IEC kibibytes */
+        case 'm': case 'M': unit = 1UL << 20; break; /* IEC mebibytes */
+        case 'g': case 'G': unit = 1UL << 30; break; /* IEC gigibytes */
+        default:
+            fprintf(stderr, "Invalid limit: %s, unrecognized suffix, only k,m,g are allowed\n", arg);
+            return -1;
+        }
+        if (*p) {
+            fprintf(stderr, "Invalid limit: %s, only one suffix allowed\n", arg);
+            return -1;
+        }
+    }
+
+    return (int64_t)(d * unit);
 }
 
 static JSValue js_gc(JSContext *ctx, JSValue this_val,
@@ -199,7 +229,8 @@ static void *js_trace_malloc(JSMallocState *s, size_t size)
     /* Do not allocate zero bytes: behavior is platform dependent */
     assert(size != 0);
 
-    if (unlikely(s->malloc_size + size > s->malloc_limit))
+    /* When malloc_limit is 0 (unlimited), malloc_limit - 1 will be SIZE_MAX. */
+    if (unlikely(s->malloc_size + size > s->malloc_limit - 1))
         return NULL;
     ptr = malloc(size);
     js_trace_malloc_printf(s, "A %zd -> %p\n", size, ptr);
@@ -238,7 +269,8 @@ static void *js_trace_realloc(JSMallocState *s, void *ptr, size_t size)
         free(ptr);
         return NULL;
     }
-    if (s->malloc_size + size - old_size > s->malloc_limit)
+    /* When malloc_limit is 0 (unlimited), malloc_limit - 1 will be SIZE_MAX. */
+    if (s->malloc_size + size - old_size > s->malloc_limit - 1)
         return NULL;
 
     js_trace_malloc_printf(s, "R %zd %p", size, ptr);
@@ -273,8 +305,8 @@ void help(void)
            "    --std          make 'std' and 'os' available to the loaded script\n"
            "-T  --trace        trace memory allocation\n"
            "-d  --dump         dump the memory usage stats\n"
-           "    --memory-limit n       limit the memory usage to 'n' bytes\n"
-           "    --stack-size n         limit the stack size to 'n' bytes\n"
+           "    --memory-limit n       limit the memory usage to 'n' Kbytes\n"
+           "    --stack-size n         limit the stack size to 'n' Kbytes\n"
            "    --unhandled-rejection  dump unhandled promise rejections\n"
            "-q  --quit         just instantiate the interpreter and quit\n", JS_GetVersion());
     exit(1);
@@ -289,15 +321,16 @@ int main(int argc, char **argv)
     char *expr = NULL;
     int interactive = 0;
     int dump_memory = 0;
+    int dump_flags = 0;
     int trace_memory = 0;
     int empty_run = 0;
     int module = -1;
     int load_std = 0;
     int dump_unhandled_promise_rejection = 0;
-    size_t memory_limit = 0;
     char *include_list[32];
     int i, include_count = 0;
-    size_t stack_size = 0;
+    int64_t memory_limit = -1;
+    int64_t stack_size = -1;
 
     argv0 = (JSCFunctionListEntry)JS_PROP_STRING_DEF("argv0", argv[0],
                                                      JS_PROP_C_W_E);
@@ -308,12 +341,16 @@ int main(int argc, char **argv)
     while (optind < argc && *argv[optind] == '-') {
         char *arg = argv[optind] + 1;
         const char *longopt = "";
+        char *opt_arg = NULL;
         /* a single - is not an option, it also stops argument scanning */
         if (!*arg)
             break;
         optind++;
         if (*arg == '-') {
             longopt = arg + 1;
+            opt_arg = strchr(longopt, '=');
+            if (opt_arg)
+                *opt_arg++ = '\0';
             arg += strlen(arg);
             /* -- stops argument scanning */
             if (!*longopt)
@@ -321,23 +358,25 @@ int main(int argc, char **argv)
         }
         for (; *arg || *longopt; longopt = "") {
             char opt = *arg;
-            if (opt)
+            if (opt) {
                 arg++;
+                if (!opt_arg && *arg)
+                    opt_arg = arg;
+            }
             if (opt == 'h' || opt == '?' || !strcmp(longopt, "help")) {
                 help();
                 continue;
             }
             if (opt == 'e' || !strcmp(longopt, "eval")) {
-                if (*arg) {
-                    expr = arg;
-                    break;
+                if (!opt_arg) {
+                    if (optind >= argc) {
+                        fprintf(stderr, "qjs: missing expression for -e\n");
+                        exit(2);
+                    }
+                    opt_arg = argv[optind++];
                 }
-                if (optind < argc) {
-                    expr = argv[optind++];
-                    break;
-                }
-                fprintf(stderr, "qjs: missing expression for -e\n");
-                exit(2);
+                expr = opt_arg;
+                break;
             }
             if (opt == 'I' || !strcmp(longopt, "include")) {
                 if (optind >= argc) {
@@ -367,6 +406,10 @@ int main(int argc, char **argv)
                 dump_memory++;
                 continue;
             }
+            if (opt == 'D' || !strcmp(longopt, "dump-flags")) {
+                dump_flags = opt_arg ? strtol(opt_arg, NULL, 16) : 0;
+                break;
+            }
             if (opt == 'T' || !strcmp(longopt, "trace")) {
                 trace_memory++;
                 continue;
@@ -384,20 +427,26 @@ int main(int argc, char **argv)
                 continue;
             }
             if (!strcmp(longopt, "memory-limit")) {
-                if (optind >= argc) {
-                    fprintf(stderr, "expecting memory limit");
-                    exit(1);
+                if (!opt_arg) {
+                    if (optind >= argc) {
+                        fprintf(stderr, "expecting memory limit");
+                        exit(1);
+                    }
+                    opt_arg = argv[optind++];
                 }
-                memory_limit = (size_t)strtod(argv[optind++], NULL);
-                continue;
+                memory_limit = parse_limit(opt_arg);
+                break;
             }
             if (!strcmp(longopt, "stack-size")) {
-                if (optind >= argc) {
-                    fprintf(stderr, "expecting stack size");
-                    exit(1);
+                if (!opt_arg) {
+                    if (optind >= argc) {
+                        fprintf(stderr, "expecting stack size");
+                        exit(1);
+                    }
+                    opt_arg = argv[optind++];
                 }
-                stack_size = (size_t)strtod(argv[optind++], NULL);
-                continue;
+                stack_size = parse_limit(opt_arg);
+                break;
             }
             if (opt) {
                 fprintf(stderr, "qjs: unknown option '-%c'\n", opt);
@@ -418,10 +467,12 @@ int main(int argc, char **argv)
         fprintf(stderr, "qjs: cannot allocate JS runtime\n");
         exit(2);
     }
-    if (memory_limit != 0)
-        JS_SetMemoryLimit(rt, memory_limit);
-    if (stack_size != 0)
-        JS_SetMaxStackSize(rt, stack_size);
+    if (memory_limit >= 0)
+        JS_SetMemoryLimit(rt, (size_t)memory_limit);
+    if (stack_size >= 0)
+        JS_SetMaxStackSize(rt, (size_t)stack_size);
+    if (dump_flags != 0)
+        JS_SetDumpFlags(rt, dump_flags);
     js_std_set_worker_new_context_func(JS_NewCustomContext);
     js_std_init_handlers(rt);
     ctx = JS_NewCustomContext(rt);
