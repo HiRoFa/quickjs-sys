@@ -283,17 +283,11 @@ typedef JSValue JSCFunction(JSContext *ctx, JSValue this_val, int argc, JSValue 
 typedef JSValue JSCFunctionMagic(JSContext *ctx, JSValue this_val, int argc, JSValue *argv, int magic);
 typedef JSValue JSCFunctionData(JSContext *ctx, JSValue this_val, int argc, JSValue *argv, int magic, JSValue *func_data);
 
-typedef struct JSMallocState {
-    size_t malloc_count;
-    size_t malloc_size;
-    size_t malloc_limit;
-    void *opaque; /* user opaque */
-} JSMallocState;
-
 typedef struct JSMallocFunctions {
-    void *(*js_malloc)(JSMallocState *s, size_t size);
-    void (*js_free)(JSMallocState *s, void *ptr);
-    void *(*js_realloc)(JSMallocState *s, void *ptr, size_t size);
+    void *(*js_calloc)(void *opaque, size_t count, size_t size);
+    void *(*js_malloc)(void *opaque, size_t size);
+    void (*js_free)(void *opaque, void *ptr);
+    void *(*js_realloc)(void *opaque, void *ptr, size_t size);
     size_t (*js_malloc_usable_size)(const void *ptr);
 } JSMallocFunctions;
 
@@ -358,12 +352,14 @@ JS_EXTERN JS_BOOL JS_IsSameValueZero(JSContext *ctx, JSValue op1, JSValue op2);
 JS_EXTERN JSValue js_string_codePointRange(JSContext *ctx, JSValue this_val,
                                  int argc, JSValue *argv);
 
+JS_EXTERN void *js_calloc_rt(JSRuntime *rt, size_t count, size_t size);
 JS_EXTERN void *js_malloc_rt(JSRuntime *rt, size_t size);
 JS_EXTERN void js_free_rt(JSRuntime *rt, void *ptr);
 JS_EXTERN void *js_realloc_rt(JSRuntime *rt, void *ptr, size_t size);
 JS_EXTERN size_t js_malloc_usable_size_rt(JSRuntime *rt, const void *ptr);
 JS_EXTERN void *js_mallocz_rt(JSRuntime *rt, size_t size);
 
+JS_EXTERN void *js_calloc(JSContext *ctx, size_t count, size_t size);
 JS_EXTERN void *js_malloc(JSContext *ctx, size_t size);
 JS_EXTERN void js_free(JSContext *ctx, void *ptr);
 JS_EXTERN void *js_realloc(JSContext *ctx, void *ptr, size_t size);
@@ -516,7 +512,7 @@ static js_force_inline JSValue JS_NewInt64(JSContext *ctx, int64_t val)
 static js_force_inline JSValue JS_NewUint32(JSContext *ctx, uint32_t val)
 {
     JSValue v;
-    if (val <= 0x7fffffff) {
+    if (val <= INT32_MAX) {
         v = JS_NewInt32(ctx, (int32_t)val);
     } else {
         v = JS_NewFloat64(ctx, (double)val);
@@ -582,6 +578,7 @@ static inline JS_BOOL JS_IsObject(JSValue v)
 
 JS_EXTERN JSValue JS_Throw(JSContext *ctx, JSValue obj);
 JS_EXTERN JSValue JS_GetException(JSContext *ctx);
+JS_BOOL JS_HasException(JSContext *ctx);
 JS_EXTERN JS_BOOL JS_IsError(JSContext *ctx, JSValue val);
 JS_EXTERN void JS_ResetUncatchableError(JSContext *ctx);
 JS_EXTERN JSValue JS_NewError(JSContext *ctx);
@@ -702,6 +699,7 @@ JS_EXTERN int JS_DeleteProperty(JSContext *ctx, JSValue obj, JSAtom prop, int fl
 JS_EXTERN int JS_SetPrototype(JSContext *ctx, JSValue obj, JSValue proto_val);
 JS_EXTERN JSValue JS_GetPrototype(JSContext *ctx, JSValue val);
 JS_EXTERN int JS_GetLength(JSContext *ctx, JSValue obj, int64_t *pres);
+JS_EXTERN int JS_SetLength(JSContext *ctx, JSValue obj, int64_t len);
 
 #define JS_GPN_STRING_MASK  (1 << 0)
 #define JS_GPN_SYMBOL_MASK  (1 << 1)
@@ -840,6 +838,12 @@ JS_EXTERN int JS_EnqueueJob(JSContext *ctx, JSJobFunc *job_func, int argc, JSVal
 JS_EXTERN JS_BOOL JS_IsJobPending(JSRuntime *rt);
 JS_EXTERN int JS_ExecutePendingJob(JSRuntime *rt, JSContext **pctx);
 
+/* Structure to retrieve (de)serialized SharedArrayBuffer objects. */
+typedef struct JSSABTab {
+    uint8_t **tab;
+    size_t len;
+} JSSABTab;
+
 /* Object Writer/Reader (currently only used to handle precompiled code) */
 #define JS_WRITE_OBJ_BYTECODE  (1 << 0) /* allow function/module */
 #define JS_WRITE_OBJ_BSWAP     (0)      /* byte swapped output (obsolete, handled transparently) */
@@ -849,13 +853,15 @@ JS_EXTERN int JS_ExecutePendingJob(JSRuntime *rt, JSContext **pctx);
 #define JS_WRITE_OBJ_STRIP_DEBUG   (1 << 5) /* do not write debug information */
 JS_EXTERN uint8_t *JS_WriteObject(JSContext *ctx, size_t *psize, JSValue obj, int flags);
 JS_EXTERN uint8_t *JS_WriteObject2(JSContext *ctx, size_t *psize, JSValue obj,
-                                   int flags, uint8_t ***psab_tab, size_t *psab_tab_len);
+                                   int flags, JSSABTab *psab_tab);
 
 #define JS_READ_OBJ_BYTECODE  (1 << 0) /* allow function/module */
 #define JS_READ_OBJ_ROM_DATA  (0)      /* avoid duplicating 'buf' data (obsolete, broken by ICs) */
 #define JS_READ_OBJ_SAB       (1 << 2) /* allow SharedArrayBuffer */
 #define JS_READ_OBJ_REFERENCE (1 << 3) /* allow object references */
 JS_EXTERN JSValue JS_ReadObject(JSContext *ctx, const uint8_t *buf, size_t buf_len, int flags);
+JS_EXTERN JSValue JS_ReadObject2(JSContext *ctx, const uint8_t *buf, size_t buf_len,
+                                 int flags, JSSABTab *psab_tab);
 /* instantiate and evaluate a bytecode function. Only used when
    reading a script or module with JS_ReadObject() */
 JS_EXTERN JSValue JS_EvalFunction(JSContext *ctx, JSValue fun_obj);
@@ -1009,7 +1015,7 @@ JS_EXTERN int JS_SetModuleExportList(JSContext *ctx, JSModuleDef *m,
 /* Version */
 
 #define QJS_VERSION_MAJOR 0
-#define QJS_VERSION_MINOR 5
+#define QJS_VERSION_MINOR 6
 #define QJS_VERSION_PATCH 0
 #define QJS_VERSION_SUFFIX ""
 

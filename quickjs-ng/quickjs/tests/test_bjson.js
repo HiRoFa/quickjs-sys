@@ -1,4 +1,4 @@
-import * as bjson from "./bjson.so";
+import * as bjson from "bjson";
 
 function assert(actual, expected, message) {
     if (arguments.length == 1)
@@ -42,6 +42,7 @@ function isArrayLike(a)
         (a instanceof Int8Array) ||
         (a instanceof Int16Array) ||
         (a instanceof Int32Array) ||
+        (a instanceof Float16Array) ||
         (a instanceof Float32Array) ||
         (a instanceof Float64Array);
 }
@@ -129,9 +130,9 @@ function bjson_test_reference()
         array[i].idx = i;
         array[i].typed_array = new Uint8Array(array_buffer, i, 1);
     }
-    buf = bjson.write(array, true);
+    buf = bjson.write(array, bjson.WRITE_OBJ_REFERENCE);
 
-    array = bjson.read(buf, 0, buf.byteLength, true);
+    array = bjson.read(buf, 0, buf.byteLength, bjson.READ_OBJ_REFERENCE);
 
     /* check the result */
     for(i = 0; i < n; i++) {
@@ -155,6 +156,28 @@ function bjson_test_regexp()
     assert("sup dog".match(r).groups["𝓓𝓸𝓰"], "dog");
 }
 
+function bjson_test_map()
+{
+    var buf, r, xs;
+
+    xs = [["key", "value"]];
+    buf = bjson.write(new Map(xs));
+    r = bjson.read(buf, 0, buf.byteLength);
+    assert(r instanceof Map);
+    assert([...r].toString(), xs.toString());
+}
+
+function bjson_test_set()
+{
+    var buf, r, xs;
+
+    xs = ["one", "two", "three"];
+    buf = bjson.write(new Set(xs));
+    r = bjson.read(buf, 0, buf.byteLength);
+    assert(r instanceof Set);
+    assert([...r].toString(), xs.toString());
+}
+
 function bjson_test_all()
 {
     var obj;
@@ -170,6 +193,7 @@ function bjson_test_all()
     bjson_test([new Date(1234), new String("abc"), new Number(-12.1), new Boolean(true)]);
 
     bjson_test(new Int32Array([123123, 222111, -32222]));
+    bjson_test(new Float16Array([1024, 1024.5]));
     bjson_test(new Float64Array([123123, 222111.5]));
 
     /* tested with a circular reference */
@@ -184,6 +208,8 @@ function bjson_test_all()
 
     bjson_test_reference();
     bjson_test_regexp();
+    bjson_test_map();
+    bjson_test_set();
 }
 
 bjson_test_all();

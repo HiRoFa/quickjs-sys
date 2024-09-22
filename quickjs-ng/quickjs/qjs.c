@@ -38,6 +38,10 @@
 #include "cutils.h"
 #include "quickjs-libc.h"
 
+#ifdef QJS_USE_MIMALLOC
+#include <mimalloc.h>
+#endif
+
 extern const uint8_t qjsc_repl[];
 extern const uint32_t qjsc_repl_size;
 
@@ -140,6 +144,9 @@ static const JSCFunctionListEntry navigator_obj[] = {
 static const JSCFunctionListEntry global_obj[] = {
     JS_CFUNC_DEF("gc", 0, js_gc),
     JS_OBJECT_DEF("navigator", navigator_obj, countof(navigator_obj), JS_PROP_C_W_E),
+#if defined(__ASAN__) || defined(__UBSAN__)
+    JS_PROP_INT32_DEF("__running_with_sanitizer__", 1, JS_PROP_C_W_E ),
+#endif
 };
 
 /* also used to initialize the worker context */
@@ -152,6 +159,7 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
     /* system modules */
     js_init_module_std(ctx, "std");
     js_init_module_os(ctx, "os");
+    js_init_module_bjson(ctx, "bjson");
 
     JSValue global = JS_GetGlobalObject(ctx);
     JS_SetPropertyFunctionList(ctx, global, global_obj, countof(global_obj));
@@ -160,12 +168,6 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
 
     return ctx;
 }
-
-#if defined(__APPLE__)
-#define MALLOC_OVERHEAD  0
-#else
-#define MALLOC_OVERHEAD  8
-#endif
 
 struct trace_malloc_data {
     uint8_t *base;
@@ -184,7 +186,7 @@ __attribute__((format(gnu_printf, 2, 3)))
 #else
 __attribute__((format(printf, 2, 3)))
 #endif
-    js_trace_malloc_printf(JSMallocState *s, const char *fmt, ...)
+    js_trace_malloc_printf(void *opaque, const char *fmt, ...)
 {
     va_list ap;
     int c;
@@ -199,7 +201,7 @@ __attribute__((format(printf, 2, 3)))
                     printf("NULL");
                 } else {
                     printf("H%+06lld.%zd",
-                           js_trace_malloc_ptr_offset(ptr, s->opaque),
+                           js_trace_malloc_ptr_offset(ptr, opaque),
                            js__malloc_usable_size(ptr));
                 }
                 fmt++;
@@ -222,73 +224,77 @@ static void js_trace_malloc_init(struct trace_malloc_data *s)
     free(s->base = malloc(8));
 }
 
-static void *js_trace_malloc(JSMallocState *s, size_t size)
+static void *js_trace_calloc(void *opaque, size_t count, size_t size)
 {
     void *ptr;
-
-    /* Do not allocate zero bytes: behavior is platform dependent */
-    assert(size != 0);
-
-    /* When malloc_limit is 0 (unlimited), malloc_limit - 1 will be SIZE_MAX. */
-    if (unlikely(s->malloc_size + size > s->malloc_limit - 1))
-        return NULL;
-    ptr = malloc(size);
-    js_trace_malloc_printf(s, "A %zd -> %p\n", size, ptr);
-    if (ptr) {
-        s->malloc_count++;
-        s->malloc_size += js__malloc_usable_size(ptr) + MALLOC_OVERHEAD;
-    }
+    ptr = calloc(count, size);
+    js_trace_malloc_printf(opaque, "C %zd %zd -> %p\n", count, size, ptr);
     return ptr;
 }
 
-static void js_trace_free(JSMallocState *s, void *ptr)
+static void *js_trace_malloc(void *opaque, size_t size)
+{
+    void *ptr;
+    ptr = malloc(size);
+    js_trace_malloc_printf(opaque, "A %zd -> %p\n", size, ptr);
+    return ptr;
+}
+
+static void js_trace_free(void *opaque, void *ptr)
 {
     if (!ptr)
         return;
-
-    js_trace_malloc_printf(s, "F %p\n", ptr);
-    s->malloc_count--;
-    s->malloc_size -= js__malloc_usable_size(ptr) + MALLOC_OVERHEAD;
+    js_trace_malloc_printf(opaque, "F %p\n", ptr);
     free(ptr);
 }
 
-static void *js_trace_realloc(JSMallocState *s, void *ptr, size_t size)
+static void *js_trace_realloc(void *opaque, void *ptr, size_t size)
 {
-    size_t old_size;
-
-    if (!ptr) {
-        if (size == 0)
-            return NULL;
-        return js_trace_malloc(s, size);
-    }
-    old_size = js__malloc_usable_size(ptr);
-    if (size == 0) {
-        js_trace_malloc_printf(s, "R %zd %p\n", size, ptr);
-        s->malloc_count--;
-        s->malloc_size -= old_size + MALLOC_OVERHEAD;
-        free(ptr);
-        return NULL;
-    }
-    /* When malloc_limit is 0 (unlimited), malloc_limit - 1 will be SIZE_MAX. */
-    if (s->malloc_size + size - old_size > s->malloc_limit - 1)
-        return NULL;
-
-    js_trace_malloc_printf(s, "R %zd %p", size, ptr);
-
+    js_trace_malloc_printf(opaque, "R %zd %p", size, ptr);
     ptr = realloc(ptr, size);
-    js_trace_malloc_printf(s, " -> %p\n", ptr);
-    if (ptr) {
-        s->malloc_size += js__malloc_usable_size(ptr) - old_size;
-    }
+    js_trace_malloc_printf(opaque, " -> %p\n", ptr);
     return ptr;
 }
 
 static const JSMallocFunctions trace_mf = {
+    js_trace_calloc,
     js_trace_malloc,
     js_trace_free,
     js_trace_realloc,
     js__malloc_usable_size
 };
+
+#ifdef QJS_USE_MIMALLOC
+static void *js_mi_calloc(void *opaque, size_t count, size_t size)
+{
+    return mi_calloc(count, size);
+}
+
+static void *js_mi_malloc(void *opaque, size_t size)
+{
+    return mi_malloc(size);
+}
+
+static void js_mi_free(void *opaque, void *ptr)
+{
+    if (!ptr)
+        return;
+    mi_free(ptr);
+}
+
+static void *js_mi_realloc(void *opaque, void *ptr, size_t size)
+{
+    return mi_realloc(ptr, size);
+}
+
+static const JSMallocFunctions mi_mf = {
+    js_mi_calloc,
+    js_mi_malloc,
+    js_mi_free,
+    js_mi_realloc,
+    mi_malloc_usable_size
+};
+#endif
 
 #define PROG_NAME "qjs"
 
@@ -305,6 +311,7 @@ void help(void)
            "    --std          make 'std' and 'os' available to the loaded script\n"
            "-T  --trace        trace memory allocation\n"
            "-d  --dump         dump the memory usage stats\n"
+           "-D  --dump-flags   flags for dumping debug data (see DUMP_* defines)\n"
            "    --memory-limit n       limit the memory usage to 'n' Kbytes\n"
            "    --stack-size n         limit the stack size to 'n' Kbytes\n"
            "    --unhandled-rejection  dump unhandled promise rejections\n"
@@ -316,9 +323,11 @@ int main(int argc, char **argv)
 {
     JSRuntime *rt;
     JSContext *ctx;
+    JSValue ret;
     struct trace_malloc_data trace_data = { NULL };
     int optind;
     char *expr = NULL;
+    char *dump_flags_str = NULL;
     int interactive = 0;
     int dump_memory = 0;
     int dump_flags = 0;
@@ -334,6 +343,9 @@ int main(int argc, char **argv)
 
     argv0 = (JSCFunctionListEntry)JS_PROP_STRING_DEF("argv0", argv[0],
                                                      JS_PROP_C_W_E);
+
+    dump_flags_str = getenv("QJS_DUMP_FLAGS");
+    dump_flags = dump_flags_str ? strtol(dump_flags_str, NULL, 16) : 0;
 
     /* cannot use getopt because we want to pass the command line to
        the script */
@@ -461,7 +473,11 @@ int main(int argc, char **argv)
         js_trace_malloc_init(&trace_data);
         rt = JS_NewRuntime2(&trace_mf, &trace_data);
     } else {
+#ifdef QJS_USE_MIMALLOC
+        rt = JS_NewRuntime2(&mi_mf, NULL);
+#else
         rt = JS_NewRuntime();
+#endif
     }
     if (!rt) {
         fprintf(stderr, "qjs: cannot allocate JS runtime\n");
@@ -522,7 +538,11 @@ int main(int argc, char **argv)
         if (interactive) {
             js_std_eval_binary(ctx, qjsc_repl, qjsc_repl_size, 0);
         }
-        js_std_loop(ctx);
+        ret = js_std_loop(ctx);
+        if (!JS_IsUndefined(ret)) {
+            js_std_dump_error1(ctx, ret);
+            goto fail;
+        }
     }
 
     if (dump_memory) {

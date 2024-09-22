@@ -28,10 +28,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#include <math.h>
 
-#if defined(_WIN32)
-#include <windows.h>
+#ifdef __cplusplus
+extern "C" {
 #endif
+
 #if defined(_MSC_VER)
 #include <winsock2.h>
 #include <malloc.h>
@@ -44,6 +46,8 @@
 #include <malloc.h>
 #elif defined(__FreeBSD__)
 #include <malloc_np.h>
+#elif defined(_WIN32)
+#include <windows.h>
 #endif
 #if !defined(_WIN32)
 #include <errno.h>
@@ -203,9 +207,16 @@ static inline int clz32(unsigned int a)
 static inline int clz64(uint64_t a)
 {
 #if defined(_MSC_VER) && !defined(__clang__)
+#if INTPTR_MAX == INT64_MAX
     unsigned long index;
     _BitScanReverse64(&index, a);
     return 63 - index;
+#else
+    if (a >> 32)
+        return clz32((unsigned)(a >> 32));
+    else
+        return clz32((unsigned)a) + 32;
+#endif
 #else
     return __builtin_clzll(a);
 #endif
@@ -342,6 +353,81 @@ static inline void inplace_bswap16(uint8_t *tab) {
 
 static inline void inplace_bswap32(uint8_t *tab) {
     put_u32(tab, bswap32(get_u32(tab)));
+}
+
+static inline double fromfp16(uint16_t v) {
+    double d, s;
+    int e;
+    if ((v & 0x7C00) == 0x7C00) {
+        d = (v & 0x3FF) ? NAN : INFINITY;
+    } else {
+        d = (v & 0x3FF) / 1024.;
+        e = (v & 0x7C00) >> 10;
+        if (e == 0) {
+            e = -14;
+        } else {
+            d += 1;
+            e -= 15;
+        }
+        d = scalbn(d, e);
+    }
+    s = (v & 0x8000) ? -1.0 : 1.0;
+    return d * s;
+}
+
+static inline uint16_t tofp16(double d) {
+    uint16_t f, s;
+    double t;
+    int e;
+    s = 0;
+    if (copysign(1, d) < 0) { // preserve sign when |d| is negative zero
+        d = -d;
+        s = 0x8000;
+    }
+    if (isinf(d))
+        return s | 0x7C00;
+    if (isnan(d))
+        return s | 0x7C01;
+    if (d == 0)
+        return s | 0;
+    d = 2 * frexp(d, &e);
+    e--;
+    if (e > 15)
+        return s | 0x7C00; // out of range, return +/-infinity
+    if (e < -25) {
+        d = 0;
+        e = 0;
+    } else if (e < -14) {
+        d = scalbn(d, e + 14);
+        e = 0;
+    } else {
+        d -= 1;
+        e += 15;
+    }
+    d *= 1024.;
+    f = (uint16_t)d;
+    t = d - f;
+    if (t < 0.5)
+        goto done;
+    if (t == 0.5)
+        if ((f & 1) == 0)
+            goto done;
+    // adjust for rounding
+    if (++f == 1024) {
+        f = 0;
+        if (++e == 31)
+            return s | 0x7C00; // out of range, return +/-infinity
+    }
+done:
+    return s | (e << 10) | f;
+}
+
+static inline int isfp16nan(uint16_t v) {
+    return (v & 0x7FFF) > 0x7C00;
+}
+
+static inline int isfp16zero(uint16_t v) {
+    return (v & 0x7FFF) == 0;
 }
 
 /* XXX: should take an extra argument to pass slack information to the caller */
@@ -519,5 +605,9 @@ void js_cond_wait(js_cond_t *cond, js_mutex_t *mutex);
 int js_cond_timedwait(js_cond_t *cond, js_mutex_t *mutex, uint64_t timeout);
 
 #endif /* !defined(EMSCRIPTEN) && !defined(__wasi__) */
+
+#ifdef __cplusplus
+} /* extern "C" { */
+#endif
 
 #endif  /* CUTILS_H */

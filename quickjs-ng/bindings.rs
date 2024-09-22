@@ -233,7 +233,7 @@ pub const JS_DEF_PROP_UNDEFINED: u32 = 7;
 pub const JS_DEF_OBJECT: u32 = 8;
 pub const JS_DEF_ALIAS: u32 = 9;
 pub const QJS_VERSION_MAJOR: u32 = 0;
-pub const QJS_VERSION_MINOR: u32 = 5;
+pub const QJS_VERSION_MINOR: u32 = 6;
 pub const QJS_VERSION_PATCH: u32 = 0;
 pub const QJS_VERSION_SUFFIX: &[u8; 1] = b"\0";
 pub type __gnuc_va_list = __builtin_va_list;
@@ -3022,8 +3022,6 @@ extern "C" {
 extern "C" {
     pub static mut signgam: ::std::os::raw::c_int;
 }
-
-pub type _bindgen_ty_1 = ::std::os::raw::c_uint;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct JSRuntime {
@@ -3214,79 +3212,26 @@ pub type JSCFunctionData = ::std::option::Option<
 >;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct JSMallocState {
-    pub malloc_count: usize,
-    pub malloc_size: usize,
-    pub malloc_limit: usize,
-    pub opaque: *mut ::std::os::raw::c_void,
-}
-#[test]
-fn bindgen_test_layout_JSMallocState() {
-    const UNINIT: ::std::mem::MaybeUninit<JSMallocState> = ::std::mem::MaybeUninit::uninit();
-    let ptr = UNINIT.as_ptr();
-    assert_eq!(
-        ::std::mem::size_of::<JSMallocState>(),
-        32usize,
-        concat!("Size of: ", stringify!(JSMallocState))
-    );
-    assert_eq!(
-        ::std::mem::align_of::<JSMallocState>(),
-        8usize,
-        concat!("Alignment of ", stringify!(JSMallocState))
-    );
-    assert_eq!(
-        unsafe { ::std::ptr::addr_of!((*ptr).malloc_count) as usize - ptr as usize },
-        0usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(JSMallocState),
-            "::",
-            stringify!(malloc_count)
-        )
-    );
-    assert_eq!(
-        unsafe { ::std::ptr::addr_of!((*ptr).malloc_size) as usize - ptr as usize },
-        8usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(JSMallocState),
-            "::",
-            stringify!(malloc_size)
-        )
-    );
-    assert_eq!(
-        unsafe { ::std::ptr::addr_of!((*ptr).malloc_limit) as usize - ptr as usize },
-        16usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(JSMallocState),
-            "::",
-            stringify!(malloc_limit)
-        )
-    );
-    assert_eq!(
-        unsafe { ::std::ptr::addr_of!((*ptr).opaque) as usize - ptr as usize },
-        24usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(JSMallocState),
-            "::",
-            stringify!(opaque)
-        )
-    );
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
 pub struct JSMallocFunctions {
+    pub js_calloc: ::std::option::Option<
+        unsafe extern "C" fn(
+            opaque: *mut ::std::os::raw::c_void,
+            count: usize,
+            size: usize,
+        ) -> *mut ::std::os::raw::c_void,
+    >,
     pub js_malloc: ::std::option::Option<
-        unsafe extern "C" fn(s: *mut JSMallocState, size: usize) -> *mut ::std::os::raw::c_void,
+        unsafe extern "C" fn(
+            opaque: *mut ::std::os::raw::c_void,
+            size: usize,
+        ) -> *mut ::std::os::raw::c_void,
     >,
     pub js_free: ::std::option::Option<
-        unsafe extern "C" fn(s: *mut JSMallocState, ptr: *mut ::std::os::raw::c_void),
+        unsafe extern "C" fn(opaque: *mut ::std::os::raw::c_void, ptr: *mut ::std::os::raw::c_void),
     >,
     pub js_realloc: ::std::option::Option<
         unsafe extern "C" fn(
-            s: *mut JSMallocState,
+            opaque: *mut ::std::os::raw::c_void,
             ptr: *mut ::std::os::raw::c_void,
             size: usize,
         ) -> *mut ::std::os::raw::c_void,
@@ -3300,7 +3245,7 @@ fn bindgen_test_layout_JSMallocFunctions() {
     let ptr = UNINIT.as_ptr();
     assert_eq!(
         ::std::mem::size_of::<JSMallocFunctions>(),
-        32usize,
+        40usize,
         concat!("Size of: ", stringify!(JSMallocFunctions))
     );
     assert_eq!(
@@ -3309,8 +3254,18 @@ fn bindgen_test_layout_JSMallocFunctions() {
         concat!("Alignment of ", stringify!(JSMallocFunctions))
     );
     assert_eq!(
-        unsafe { ::std::ptr::addr_of!((*ptr).js_malloc) as usize - ptr as usize },
+        unsafe { ::std::ptr::addr_of!((*ptr).js_calloc) as usize - ptr as usize },
         0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(JSMallocFunctions),
+            "::",
+            stringify!(js_calloc)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).js_malloc) as usize - ptr as usize },
+        8usize,
         concat!(
             "Offset of field: ",
             stringify!(JSMallocFunctions),
@@ -3320,7 +3275,7 @@ fn bindgen_test_layout_JSMallocFunctions() {
     );
     assert_eq!(
         unsafe { ::std::ptr::addr_of!((*ptr).js_free) as usize - ptr as usize },
-        8usize,
+        16usize,
         concat!(
             "Offset of field: ",
             stringify!(JSMallocFunctions),
@@ -3330,7 +3285,7 @@ fn bindgen_test_layout_JSMallocFunctions() {
     );
     assert_eq!(
         unsafe { ::std::ptr::addr_of!((*ptr).js_realloc) as usize - ptr as usize },
-        16usize,
+        24usize,
         concat!(
             "Offset of field: ",
             stringify!(JSMallocFunctions),
@@ -3340,7 +3295,7 @@ fn bindgen_test_layout_JSMallocFunctions() {
     );
     assert_eq!(
         unsafe { ::std::ptr::addr_of!((*ptr).js_malloc_usable_size) as usize - ptr as usize },
-        24usize,
+        32usize,
         concat!(
             "Offset of field: ",
             stringify!(JSMallocFunctions),
@@ -3500,6 +3455,13 @@ extern "C" {
     ) -> JSValue;
 }
 extern "C" {
+    pub fn js_calloc_rt(
+        rt: *mut JSRuntime,
+        count: usize,
+        size: usize,
+    ) -> *mut ::std::os::raw::c_void;
+}
+extern "C" {
     pub fn js_malloc_rt(rt: *mut JSRuntime, size: usize) -> *mut ::std::os::raw::c_void;
 }
 extern "C" {
@@ -3520,6 +3482,10 @@ extern "C" {
 }
 extern "C" {
     pub fn js_mallocz_rt(rt: *mut JSRuntime, size: usize) -> *mut ::std::os::raw::c_void;
+}
+extern "C" {
+    pub fn js_calloc(ctx: *mut JSContext, count: usize, size: usize)
+        -> *mut ::std::os::raw::c_void;
 }
 extern "C" {
     pub fn js_malloc(ctx: *mut JSContext, size: usize) -> *mut ::std::os::raw::c_void;
@@ -4279,6 +4245,9 @@ extern "C" {
     pub fn JS_GetException(ctx: *mut JSContext) -> JSValue;
 }
 extern "C" {
+    pub fn JS_HasException(ctx: *mut JSContext) -> ::std::os::raw::c_int;
+}
+extern "C" {
     pub fn JS_IsError(ctx: *mut JSContext, val: JSValue) -> ::std::os::raw::c_int;
 }
 extern "C" {
@@ -4522,6 +4491,9 @@ extern "C" {
 extern "C" {
     pub fn JS_GetLength(ctx: *mut JSContext, obj: JSValue, pres: *mut i64)
         -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn JS_SetLength(ctx: *mut JSContext, obj: JSValue, len: i64) -> ::std::os::raw::c_int;
 }
 extern "C" {
     pub fn JS_GetOwnPropertyNames(
@@ -4945,6 +4917,47 @@ extern "C" {
         pctx: *mut *mut JSContext,
     ) -> ::std::os::raw::c_int;
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct JSSABTab {
+    pub tab: *mut *mut u8,
+    pub len: usize,
+}
+#[test]
+fn bindgen_test_layout_JSSABTab() {
+    const UNINIT: ::std::mem::MaybeUninit<JSSABTab> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<JSSABTab>(),
+        16usize,
+        concat!("Size of: ", stringify!(JSSABTab))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<JSSABTab>(),
+        8usize,
+        concat!("Alignment of ", stringify!(JSSABTab))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).tab) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(JSSABTab),
+            "::",
+            stringify!(tab)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).len) as usize - ptr as usize },
+        8usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(JSSABTab),
+            "::",
+            stringify!(len)
+        )
+    );
+}
 extern "C" {
     pub fn JS_WriteObject(
         ctx: *mut JSContext,
@@ -4959,8 +4972,7 @@ extern "C" {
         psize: *mut usize,
         obj: JSValue,
         flags: ::std::os::raw::c_int,
-        psab_tab: *mut *mut *mut u8,
-        psab_tab_len: *mut usize,
+        psab_tab: *mut JSSABTab,
     ) -> *mut u8;
 }
 extern "C" {
@@ -4969,6 +4981,15 @@ extern "C" {
         buf: *const u8,
         buf_len: usize,
         flags: ::std::os::raw::c_int,
+    ) -> JSValue;
+}
+extern "C" {
+    pub fn JS_ReadObject2(
+        ctx: *mut JSContext,
+        buf: *const u8,
+        buf_len: usize,
+        flags: ::std::os::raw::c_int,
+        psab_tab: *mut JSSABTab,
     ) -> JSValue;
 }
 extern "C" {

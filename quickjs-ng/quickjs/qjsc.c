@@ -39,6 +39,12 @@
 #include "cutils.h"
 #include "quickjs-libc.h"
 
+typedef enum {
+    OUTPUT_C,
+    OUTPUT_C_MAIN,
+    OUTPUT_RAW,
+} OutputTypeEnum;
+
 typedef struct {
     char *name;
     char *short_name;
@@ -54,6 +60,7 @@ typedef struct namelist_t {
 static namelist_t cname_list;
 static namelist_t cmodule_list;
 static namelist_t init_module_list;
+static OutputTypeEnum output_type;
 static FILE *outfile;
 static const char *c_ident_prefix = "qjsc_";
 static int strip;
@@ -171,12 +178,16 @@ static void output_object_code(JSContext *ctx,
 
     namelist_add(&cname_list, c_name, NULL, load_only);
 
-    fprintf(fo, "const uint32_t %s_size = %u;\n\n",
-            c_name, (unsigned int)out_buf_len);
-    fprintf(fo, "const uint8_t %s[%u] = {\n",
-            c_name, (unsigned int)out_buf_len);
-    dump_hex(fo, out_buf, out_buf_len);
-    fprintf(fo, "};\n\n");
+    if (output_type == OUTPUT_RAW) {
+        fwrite(out_buf, 1, out_buf_len, fo);
+    } else {
+        fprintf(fo, "const uint32_t %s_size = %u;\n\n",
+                c_name, (unsigned int)out_buf_len);
+        fprintf(fo, "const uint8_t %s[%u] = {\n",
+                c_name, (unsigned int)out_buf_len);
+        dump_hex(fo, out_buf, out_buf_len);
+        fprintf(fo, "};\n\n");
+    }
 
     js_free(ctx, out_buf);
 }
@@ -261,6 +272,7 @@ JSModuleDef *jsc_module_loader(JSContext *ctx,
 
 static void compile_file(JSContext *ctx, FILE *fo,
                          const char *filename,
+                         const char *script_name,
                          const char *c_name1,
                          int module)
 {
@@ -284,7 +296,7 @@ static void compile_file(JSContext *ctx, FILE *fo,
         eval_flags |= JS_EVAL_TYPE_MODULE;
     else
         eval_flags |= JS_EVAL_TYPE_GLOBAL;
-    obj = JS_Eval(ctx, (const char *)buf, buf_len, filename, eval_flags);
+    obj = JS_Eval(ctx, (const char *)buf, buf_len, script_name ? script_name : filename, eval_flags);
     if (JS_IsException(obj)) {
         js_std_dump_error(ctx);
         exit(1);
@@ -325,38 +337,36 @@ void help(void)
            "usage: " PROG_NAME " [options] [files]\n"
            "\n"
            "options are:\n"
+           "-b          output raw bytecode instead of C code\n"
            "-e          output main() and bytecode in a C file\n"
            "-o output   set the output filename\n"
+           "-n script_name    set the script name (as used in stack traces)\n"
            "-N cname    set the C name of the generated data\n"
            "-m          compile as Javascript module (default=autodetect)\n"
            "-D module_name         compile a dynamically loaded module or worker\n"
            "-M module_name[,cname] add initialization code for an external C module\n"
            "-p prefix   set the prefix of the generated C names\n"
+           "-s          strip the source code, specify twice to also strip debug info\n"
            "-S n        set the maximum stack size to 'n' bytes (default=%d)\n",
            JS_GetVersion(),
            JS_DEFAULT_STACK_SIZE);
     exit(1);
 }
 
-typedef enum {
-    OUTPUT_C,
-    OUTPUT_C_MAIN,
-} OutputTypeEnum;
-
 int main(int argc, char **argv)
 {
     int c, i, verbose;
-    const char *out_filename, *cname;
+    const char *out_filename, *cname, *script_name;
     char cfilename[1024];
     FILE *fo;
     JSRuntime *rt;
     JSContext *ctx;
     int module;
-    OutputTypeEnum output_type;
     size_t stack_size;
     namelist_t dynamic_module_list;
 
     out_filename = NULL;
+    script_name = NULL;
     output_type = OUTPUT_C;
     cname = NULL;
     module = -1;
@@ -368,19 +378,26 @@ int main(int argc, char **argv)
     /* add system modules */
     namelist_add(&cmodule_list, "std", "std", 0);
     namelist_add(&cmodule_list, "os", "os", 0);
+    namelist_add(&cmodule_list, "bjson", "bjson", 0);
 
     for(;;) {
-        c = getopt(argc, argv, "ho:N:mxesvM:p:S:D:");
+        c = getopt(argc, argv, "ho:N:mn:bxesvM:p:S:D:");
         if (c == -1)
             break;
         switch(c) {
         case 'h':
             help();
+        case 'b':
+            output_type = OUTPUT_RAW;
+            break;
         case 'o':
             out_filename = optarg;
             break;
         case 'e':
             output_type = OUTPUT_C_MAIN;
+            break;
+        case 'n':
+            script_name = optarg;
             break;
         case 'N':
             cname = optarg;
@@ -432,7 +449,11 @@ int main(int argc, char **argv)
 
     pstrcpy(cfilename, sizeof(cfilename), out_filename);
 
-    fo = fopen(cfilename, "w");
+    if (output_type == OUTPUT_RAW)
+        fo = fopen(cfilename, "wb");
+    else
+        fo = fopen(cfilename, "w");
+
     if (!fo) {
         perror(cfilename);
         exit(1);
@@ -445,15 +466,17 @@ int main(int argc, char **argv)
     /* loader for ES6 modules */
     JS_SetModuleLoaderFunc(rt, NULL, jsc_module_loader, NULL);
 
-    fprintf(fo, "/* File generated automatically by the QuickJS-ng compiler. */\n"
-            "\n"
-            );
+    if (output_type != OUTPUT_RAW) {
+        fprintf(fo, "/* File generated automatically by the QuickJS-ng compiler. */\n"
+                "\n"
+                );
+    }
 
-    if (output_type != OUTPUT_C) {
+    if (output_type == OUTPUT_C_MAIN) {
         fprintf(fo, "#include \"quickjs-libc.h\"\n"
                 "\n"
                 );
-    } else {
+    } else if (output_type == OUTPUT_C) {
         fprintf(fo, "#include <inttypes.h>\n"
                 "\n"
                 );
@@ -461,7 +484,7 @@ int main(int argc, char **argv)
 
     for(i = optind; i < argc; i++) {
         const char *filename = argv[i];
-        compile_file(ctx, fo, filename, cname, module);
+        compile_file(ctx, fo, filename, script_name, cname, module);
         cname = NULL;
     }
 
@@ -473,7 +496,7 @@ int main(int argc, char **argv)
         }
     }
 
-    if (output_type != OUTPUT_C) {
+    if (output_type == OUTPUT_C_MAIN) {
         fprintf(fo,
                 "static JSContext *JS_NewCustomContext(JSRuntime *rt)\n"
                 "{\n"

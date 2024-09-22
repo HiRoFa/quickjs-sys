@@ -1,7 +1,5 @@
 rm -r -f ./quickjs
-git clone https://github.com/quickjs-ng/quickjs.git --branch v0.5.0 --single-branch
-#git clone https://github.com/quickjs-ng/quickjs.git --single-branch
+git clone https://github.com/quickjs-ng/quickjs.git --branch v0.6.0 --single-branch
 rm -r -f quickjs/.git
 bindgen ../wrapper.h -o bindings.rs -- -I ./
-#echo "quickjs-ng-0.4.1" > ./quickjs/VERSION
-echo "quickjs-ng-0.5.0" > ./quickjs/VERSION
+echo "quickjs-ng-0.6.0" > ./quickjs/VERSION

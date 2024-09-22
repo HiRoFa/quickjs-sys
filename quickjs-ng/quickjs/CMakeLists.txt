@@ -35,10 +35,10 @@ xcheck_add_c_compiler_flag(-Wno-implicit-fallthrough)
 xcheck_add_c_compiler_flag(-Wno-sign-compare)
 xcheck_add_c_compiler_flag(-Wno-missing-field-initializers)
 xcheck_add_c_compiler_flag(-Wno-unused-parameter)
-xcheck_add_c_compiler_flag(-Wno-unused-variable)
 xcheck_add_c_compiler_flag(-Wno-unused-but-set-variable)
 xcheck_add_c_compiler_flag(-Wno-array-bounds)
 xcheck_add_c_compiler_flag(-Wno-format-truncation)
+xcheck_add_c_compiler_flag(-Wno-format-zero-length)
 xcheck_add_c_compiler_flag(-funsigned-char)
 
 # ClangCL is command line compatible with MSVC, so 'MSVC' is set.
@@ -52,6 +52,27 @@ if(MSVC)
     xcheck_add_c_compiler_flag(-Wno-reserved-identifier)
     xcheck_add_c_compiler_flag(-Wdeprecated-declarations)
     xcheck_add_c_compiler_flag(/experimental:c11atomics)
+    xcheck_add_c_compiler_flag(/wd4018) # -Wno-sign-conversion
+    xcheck_add_c_compiler_flag(/wd4061) # -Wno-implicit-fallthrough
+    xcheck_add_c_compiler_flag(/wd4100) # -Wno-unused-parameter
+    xcheck_add_c_compiler_flag(/wd4200) # -Wno-zero-length-array
+    xcheck_add_c_compiler_flag(/wd4242) # -Wno-shorten-64-to-32
+    xcheck_add_c_compiler_flag(/wd4244) # -Wno-shorten-64-to-32
+    xcheck_add_c_compiler_flag(/wd4245) # -Wno-sign-compare
+    xcheck_add_c_compiler_flag(/wd4267) # -Wno-shorten-64-to-32
+    xcheck_add_c_compiler_flag(/wd4388) # -Wno-sign-compare
+    xcheck_add_c_compiler_flag(/wd4389) # -Wno-sign-compare
+    xcheck_add_c_compiler_flag(/wd4710) # Function not inlined
+    xcheck_add_c_compiler_flag(/wd4711) # Function was inlined
+    xcheck_add_c_compiler_flag(/wd4820) # Padding added after construct
+    xcheck_add_c_compiler_flag(/wd4996) # -Wdeprecated-declarations
+    xcheck_add_c_compiler_flag(/wd5045) # Compiler will insert Spectre mitigation for memory load if /Qspectre switch specified
+endif()
+
+# MacOS and GCC 11 or later need -Wno-maybe-uninitialized
+# https://github.com/quickjs-ng/quickjs/issues/453
+if(APPLE AND CMAKE_C_COMPILER_ID STREQUAL "GNU" AND CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 11)
+    xcheck_add_c_compiler_flag(-Wno-maybe-uninitialized)
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "WASI")
@@ -90,6 +111,7 @@ endif()
 
 xoption(BUILD_EXAMPLES "Build examples" OFF)
 xoption(BUILD_STATIC_QJS_EXE "Build a static qjs executable" OFF)
+xoption(BUILD_CLI_WITH_MIMALLOC "Build the qjs executable with mimalloc" OFF)
 xoption(CONFIG_ASAN "Enable AddressSanitizer (ASan)" OFF)
 xoption(CONFIG_MSAN "Enable MemorySanitizer (MSan)" OFF)
 xoption(CONFIG_UBSAN "Enable UndefinedBehaviorSanitizer (UBSan)" OFF)
@@ -123,6 +145,9 @@ add_link_options(
 )
 elseif(CONFIG_UBSAN)
 message(STATUS "Building with UBSan")
+add_compile_definitions(
+    __UBSAN__=1
+)
 add_compile_options(
     -fsanitize=undefined
     -fno-sanitize-recover=all
@@ -140,6 +165,11 @@ endif()
 #
 
 xoption(BUILD_QJS_LIBC "Build standard library modules as part of the library" OFF)
+macro(add_qjs_libc_if_needed target)
+    if(NOT BUILD_QJS_LIBC)
+        target_sources(${target} PRIVATE quickjs-libc.c)
+    endif()
+endmacro()
 
 set(qjs_sources
     cutils.c
@@ -156,7 +186,7 @@ list(APPEND qjs_defines _GNU_SOURCE)
 if(WIN32)
     list(APPEND qjs_defines WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0602)
 endif()
-list(APPEND qjs_libs qjs ${CMAKE_DL_LIBS})
+list(APPEND qjs_libs ${CMAKE_DL_LIBS})
 find_package(Threads)
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "WASI")
     list(APPEND qjs_libs ${CMAKE_THREAD_LIBS_INIT})
@@ -167,15 +197,11 @@ endif()
 
 add_library(qjs ${qjs_sources})
 target_compile_definitions(qjs PRIVATE ${qjs_defines})
-if(CMAKE_BUILD_TYPE MATCHES Debug OR DUMP_LEAKS)
-    target_compile_definitions(qjs PRIVATE
-        DUMP_LEAKS
-    )
-endif()
 target_include_directories(qjs PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>  
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
+target_link_libraries(qjs PUBLIC ${qjs_libs})
 
 if(EMSCRIPTEN)
     add_executable(qjs_wasm ${qjs_sources})
@@ -201,10 +227,10 @@ endif()
 
 add_executable(qjsc
     qjsc.c
-    quickjs-libc.c
 )
+add_qjs_libc_if_needed(qjsc)
 target_compile_definitions(qjsc PRIVATE ${qjs_defines})
-target_link_libraries(qjsc ${qjs_libs})
+target_link_libraries(qjsc qjs)
 
 
 # QuickJS CLI
@@ -213,13 +239,13 @@ target_link_libraries(qjsc ${qjs_libs})
 add_executable(qjs_exe
     gen/repl.c
     qjs.c
-    quickjs-libc.c
 )
+add_qjs_libc_if_needed(qjs_exe)
 set_target_properties(qjs_exe PROPERTIES
     OUTPUT_NAME "qjs"
 )
 target_compile_definitions(qjs_exe PRIVATE ${qjs_defines})
-target_link_libraries(qjs_exe ${qjs_libs})
+target_link_libraries(qjs_exe qjs)
 if(BUILD_STATIC_QJS_EXE OR MINGW)
     target_link_options(qjs_exe PRIVATE -static)
     if(MINGW)
@@ -229,7 +255,11 @@ endif()
 if(NOT WIN32)
     set_target_properties(qjs_exe PROPERTIES ENABLE_EXPORTS TRUE)
 endif()
-
+if(BUILD_CLI_WITH_MIMALLOC)
+    find_package(mimalloc REQUIRED)
+    target_compile_definitions(qjs_exe PRIVATE QJS_USE_MIMALLOC)
+    target_link_libraries(qjs_exe mimalloc-static)
+endif()
 
 # Test262 runner
 #
@@ -237,11 +267,11 @@ endif()
 # run-test262 uses pthreads.
 if(NOT WIN32 AND NOT EMSCRIPTEN)
     add_executable(run-test262
-        quickjs-libc.c
         run-test262.c
     )
+    add_qjs_libc_if_needed(run-test262)
     target_compile_definitions(run-test262 PRIVATE ${qjs_defines})
-    target_link_libraries(run-test262 ${qjs_libs})
+    target_link_libraries(run-test262 qjs)
 endif()
 
 # Unicode generator
@@ -256,72 +286,64 @@ target_compile_definitions(unicode_gen PRIVATE ${qjs_defines})
 
 add_executable(function_source
     gen/function_source.c
-    quickjs-libc.c
 )
+add_qjs_libc_if_needed(function_source)
 target_include_directories(function_source PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_definitions(function_source PRIVATE ${qjs_defines})
-target_link_libraries(function_source ${qjs_libs})
+target_link_libraries(function_source qjs)
 
 # Examples
 #
 
-if(BUILD_EXAMPLES AND NOT WIN32)
+if(BUILD_EXAMPLES)
     add_executable(hello
         gen/hello.c
-        quickjs-libc.c
     )
+    add_qjs_libc_if_needed(hello)
     target_include_directories(hello PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     target_compile_definitions(hello PRIVATE ${qjs_defines})
-    target_link_libraries(hello ${qjs_libs})
+    target_link_libraries(hello qjs)
 
     add_executable(hello_module
         gen/hello_module.c
-        quickjs-libc.c
     )
+    add_qjs_libc_if_needed(hello_module)
     target_include_directories(hello_module PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     target_compile_definitions(hello_module PRIVATE ${qjs_defines})
-    target_link_libraries(hello_module ${qjs_libs})
+    target_link_libraries(hello_module qjs)
 
-    if(NOT WIN32)
-        add_library(fib MODULE examples/fib.c)
-        set_target_properties(fib PROPERTIES
-            PREFIX ""
-            C_VISIBILITY_PRESET default
-        )
-        target_compile_definitions(fib PRIVATE JS_SHARED_LIBRARY)
-        if(APPLE)
-            target_link_options(fib PRIVATE -undefined dynamic_lookup)
-        endif()
+    add_library(fib MODULE examples/fib.c)
+    set_target_properties(fib PROPERTIES
+        PREFIX ""
+        C_VISIBILITY_PRESET default
+    )
+    target_compile_definitions(fib PRIVATE JS_SHARED_LIBRARY)
+    if(WIN32)
+        target_link_libraries(fib qjs)
+    elseif(APPLE)
+        target_link_options(fib PRIVATE -undefined dynamic_lookup)
+    endif()
 
-        add_library(point MODULE examples/point.c)
-        set_target_properties(point PROPERTIES
-            PREFIX ""
-            C_VISIBILITY_PRESET default
-        )
-        target_compile_definitions(point PRIVATE JS_SHARED_LIBRARY)
-        if(APPLE)
-            target_link_options(point PRIVATE -undefined dynamic_lookup)
-        endif()
-
-        add_library(bjson MODULE tests/bjson.c)
-        set_target_properties(bjson PROPERTIES
-            PREFIX ""
-            C_VISIBILITY_PRESET default
-        )
-        target_compile_definitions(bjson PRIVATE JS_SHARED_LIBRARY)
-        if(APPLE)
-            target_link_options(bjson PRIVATE -undefined dynamic_lookup)
-        endif()
+    add_library(point MODULE examples/point.c)
+    set_target_properties(point PROPERTIES
+        PREFIX ""
+        C_VISIBILITY_PRESET default
+    )
+    target_compile_definitions(point PRIVATE JS_SHARED_LIBRARY)
+    if(WIN32)
+        target_link_libraries(point qjs)
+    elseif(APPLE)
+        target_link_options(point PRIVATE -undefined dynamic_lookup)
     endif()
 
     add_executable(test_fib
         examples/fib.c
         gen/test_fib.c
-        quickjs-libc.c
     )
+    add_qjs_libc_if_needed(test_fib)
     target_include_directories(test_fib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     target_compile_definitions(test_fib PRIVATE ${qjs_defines})
-    target_link_libraries(test_fib ${qjs_libs})
+    target_link_libraries(test_fib qjs)
 endif()
 
 add_executable(test_conv

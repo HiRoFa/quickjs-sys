@@ -37,7 +37,9 @@
 #undef NANOSEC
 #define NANOSEC ((uint64_t) 1e9)
 
+#ifdef __GNUC__
 #pragma GCC visibility push(default)
+#endif
 
 void pstrcpy(char *buf, int buf_size, const char *str)
 {
@@ -600,7 +602,7 @@ char const digits36[36] = "0123456789abcdefghijklmnopqrstuvwxyz";
         else \
             buf = (buf << 8) | (c)
 
-size_t u7toa_shift(char dest[minimum_length(8)], uint32_t n)
+static size_t u7toa_shift(char dest[minimum_length(8)], uint32_t n)
 {
     size_t len = 1;
     uint64_t buf = 0;
@@ -615,7 +617,7 @@ size_t u7toa_shift(char dest[minimum_length(8)], uint32_t n)
     return len;
 }
 
-size_t u07toa_shift(char dest[minimum_length(8)], uint32_t n, size_t len)
+static size_t u07toa_shift(char dest[minimum_length(8)], uint32_t n, size_t len)
 {
     size_t i;
     dest += len;
@@ -1404,4 +1406,6 @@ int js_cond_timedwait(js_cond_t *cond, js_mutex_t *mutex, uint64_t timeout) {
 
 #endif /* !defined(EMSCRIPTEN) && !defined(__wasi__) */
 
+#ifdef __GNUC__
 #pragma GCC visibility pop
+#endif
