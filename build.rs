@@ -18,7 +18,7 @@ fn main() {
     #[cfg(feature = "bellard")]
     let embed_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("bellard");
     #[cfg(feature = "quickjs-ng")]
-        let embed_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("quickjs-ng");
+    let embed_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("quickjs-ng");
 
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
 
@@ -85,4 +85,3 @@ fn main() {
     std::fs::copy(embed_path.join("bindings.rs"), out_path.join("bindings.rs"))
         .expect("Could not copy bindings.rs");
 }
-
