@@ -1,5 +1,9 @@
 # hirofa-quickjs_sys - Changelog
 
+## 0.6.0
+
+* updated quickjs-ng to 0.6.0
+
 ## 0.5.0
 
 * updated quickjs-ng to 0.5.0
