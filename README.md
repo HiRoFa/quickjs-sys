@@ -14,9 +14,9 @@ status:
 
 Cargo.toml
 ```toml
-libquickjs-sys = {package="hirofa-quickjs-sys", version="0.4.0", features=["bellard"]}
+libquickjs-sys = {package="hirofa-quickjs-sys", version="0.6.1", features=["bellard"]}
 ```
 or
 ```toml
-libquickjs-sys = {package="hirofa-quickjs-sys", version="0.4.0", features=["quickjs-ng"]}
+libquickjs-sys = {package="hirofa-quickjs-sys", version="0.6.1", features=["quickjs-ng"]}
 ```
