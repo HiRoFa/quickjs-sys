@@ -234,7 +234,7 @@ pub const JS_DEF_OBJECT: u32 = 8;
 pub const JS_DEF_ALIAS: u32 = 9;
 pub const QJS_VERSION_MAJOR: u32 = 0;
 pub const QJS_VERSION_MINOR: u32 = 6;
-pub const QJS_VERSION_PATCH: u32 = 0;
+pub const QJS_VERSION_PATCH: u32 = 1;
 pub const QJS_VERSION_SUFFIX: &[u8; 1] = b"\0";
 pub type __gnuc_va_list = __builtin_va_list;
 pub type __u_char = ::std::os::raw::c_uchar;
@@ -3022,6 +3022,12 @@ extern "C" {
 extern "C" {
     pub static mut signgam: ::std::os::raw::c_int;
 }
+//pub const FP_NAN: _bindgen_ty_1 = 0;
+//pub const FP_INFINITE: _bindgen_ty_1 = 1;
+//pub const FP_ZERO: _bindgen_ty_1 = 2;
+//pub const FP_SUBNORMAL: _bindgen_ty_1 = 3;
+//pub const FP_NORMAL: _bindgen_ty_1 = 4;
+pub type _bindgen_ty_1 = ::std::os::raw::c_uint;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct JSRuntime {

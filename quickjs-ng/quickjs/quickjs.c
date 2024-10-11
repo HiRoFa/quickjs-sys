@@ -1409,7 +1409,7 @@ void *js_calloc_rt(JSRuntime *rt, size_t count, size_t size)
         return NULL;
 
     s->malloc_count++;
-    s->malloc_size += js__malloc_usable_size(ptr) + MALLOC_OVERHEAD;
+    s->malloc_size += rt->mf.js_malloc_usable_size(ptr) + MALLOC_OVERHEAD;
     return ptr;
 }
 
@@ -1431,7 +1431,7 @@ void *js_malloc_rt(JSRuntime *rt, size_t size)
         return NULL;
 
     s->malloc_count++;
-    s->malloc_size += js__malloc_usable_size(ptr) + MALLOC_OVERHEAD;
+    s->malloc_size += rt->mf.js_malloc_usable_size(ptr) + MALLOC_OVERHEAD;
     return ptr;
 }
 
@@ -1444,7 +1444,7 @@ void js_free_rt(JSRuntime *rt, void *ptr)
 
     s = &rt->malloc_state;
     s->malloc_count--;
-    s->malloc_size -= js__malloc_usable_size(ptr) + MALLOC_OVERHEAD;
+    s->malloc_size -= rt->mf.js_malloc_usable_size(ptr) + MALLOC_OVERHEAD;
     rt->mf.js_free(s->opaque, ptr);
 }
 
@@ -1462,7 +1462,7 @@ void *js_realloc_rt(JSRuntime *rt, void *ptr, size_t size)
         js_free_rt(rt, ptr);
         return NULL;
     }
-    old_size = js__malloc_usable_size(ptr);
+    old_size = rt->mf.js_malloc_usable_size(ptr);
     s = &rt->malloc_state;
     /* When malloc_limit is 0 (unlimited), malloc_limit - 1 will be SIZE_MAX. */
     if (s->malloc_size + size - old_size > s->malloc_limit - 1)
@@ -1472,7 +1472,7 @@ void *js_realloc_rt(JSRuntime *rt, void *ptr, size_t size)
     if (!ptr)
         return NULL;
 
-    s->malloc_size += js__malloc_usable_size(ptr) - old_size;
+    s->malloc_size += rt->mf.js_malloc_usable_size(ptr) - old_size;
     return ptr;
 }
 
@@ -1734,7 +1734,7 @@ JSRuntime *JS_NewRuntime2(const JSMallocFunctions *mf, void *opaque)
         return NULL;
     /* Inline what js_malloc_rt does since we cannot use it here. */
     ms.malloc_count++;
-    ms.malloc_size += js__malloc_usable_size(rt) + MALLOC_OVERHEAD;
+    ms.malloc_size += mf->js_malloc_usable_size(rt) + MALLOC_OVERHEAD;
     rt->mf = *mf;
     if (!rt->mf.js_malloc_usable_size) {
         /* use dummy function if none provided */
@@ -2459,11 +2459,7 @@ static inline BOOL is_strict_mode(JSContext *ctx)
 
 static inline BOOL __JS_AtomIsConst(JSAtom v)
 {
-#ifdef DUMP_ATOM_LEAKS
-        return (int32_t)v <= 0;
-#else
-        return (int32_t)v < JS_ATOM_END;
-#endif
+    return (int32_t)v < JS_ATOM_END;
 }
 
 static inline BOOL __JS_AtomIsTaggedInt(JSAtom v)
@@ -2727,11 +2723,6 @@ static JSAtomKindEnum JS_AtomGetKind(JSContext *ctx, JSAtom v)
         abort();
     }
     return (JSAtomKindEnum){-1}; // pacify compiler
-}
-
-static BOOL JS_AtomIsString(JSContext *ctx, JSAtom v)
-{
-    return JS_AtomGetKind(ctx, v) == JS_ATOM_KIND_STRING;
 }
 
 static JSAtom js_get_atom_index(JSRuntime *rt, JSAtomStruct *p)
@@ -7505,6 +7496,8 @@ static int JS_SetPrivateField(JSContext *ctx, JSValue obj,
     return 0;
 }
 
+/* add a private brand field to 'home_obj' if not already present and
+   if obj is != null add a private brand to it */
 static int JS_AddBrand(JSContext *ctx, JSValue obj, JSValue home_obj)
 {
     JSObject *p, *p1;
@@ -7520,10 +7513,10 @@ static int JS_AddBrand(JSContext *ctx, JSValue obj, JSValue home_obj)
     p = JS_VALUE_GET_OBJ(home_obj);
     prs = find_own_property(&pr, p, JS_ATOM_Private_brand);
     if (!prs) {
+        /* if the brand is not present, add it */
         brand = JS_NewSymbolFromAtom(ctx, JS_ATOM_brand, JS_ATOM_TYPE_PRIVATE);
         if (JS_IsException(brand))
             return -1;
-        /* if the brand is not present, add it */
         pr = add_property(ctx, p, JS_ATOM_Private_brand, JS_PROP_C_W_E);
         if (!pr) {
             JS_FreeValue(ctx, brand);
@@ -7535,26 +7528,28 @@ static int JS_AddBrand(JSContext *ctx, JSValue obj, JSValue home_obj)
     }
     brand_atom = js_symbol_to_atom(ctx, brand);
 
-    if (unlikely(JS_VALUE_GET_TAG(obj) != JS_TAG_OBJECT)) {
-        JS_ThrowTypeErrorNotAnObject(ctx);
+    if (JS_IsObject(obj)) {
+        p1 = JS_VALUE_GET_OBJ(obj);
+        prs = find_own_property(&pr, p1, brand_atom);
+        if (unlikely(prs)) {
+            JS_FreeAtom(ctx, brand_atom);
+            JS_ThrowTypeError(ctx, "private method is already present");
+            return -1;
+        }
+        pr = add_property(ctx, p1, brand_atom, JS_PROP_C_W_E);
         JS_FreeAtom(ctx, brand_atom);
-        return -1;
-    }
-    p1 = JS_VALUE_GET_OBJ(obj);
-    prs = find_own_property(&pr, p1, brand_atom);
-    if (unlikely(prs)) {
+        if (!pr)
+            return -1;
+        pr->u.value = JS_UNDEFINED;
+    } else {
         JS_FreeAtom(ctx, brand_atom);
-        JS_ThrowTypeError(ctx, "private method is already present");
-        return -1;
     }
-    pr = add_property(ctx, p1, brand_atom, JS_PROP_C_W_E);
-    JS_FreeAtom(ctx, brand_atom);
-    if (!pr)
-        return -1;
-    pr->u.value = JS_UNDEFINED;
+
     return 0;
 }
 
+/* return a boolean telling if the brand of the home object of 'func'
+   is present on 'obj' or -1 in case of exception */
 static int JS_CheckBrand(JSContext *ctx, JSValue obj, JSValue func)
 {
     JSObject *p, *p1, *home_obj;
@@ -7563,11 +7558,8 @@ static int JS_CheckBrand(JSContext *ctx, JSValue obj, JSValue func)
     JSValue brand;
 
     /* get the home object of 'func' */
-    if (unlikely(JS_VALUE_GET_TAG(func) != JS_TAG_OBJECT)) {
-    not_obj:
-        JS_ThrowTypeErrorNotAnObject(ctx);
-        return -1;
-    }
+    if (unlikely(JS_VALUE_GET_TAG(func) != JS_TAG_OBJECT))
+        goto not_obj;
     p1 = JS_VALUE_GET_OBJ(func);
     if (!js_class_has_bytecode(p1->class_id))
         goto not_obj;
@@ -7585,15 +7577,14 @@ static int JS_CheckBrand(JSContext *ctx, JSValue obj, JSValue func)
         goto not_obj;
 
     /* get the brand array of 'obj' */
-    if (unlikely(JS_VALUE_GET_TAG(obj) != JS_TAG_OBJECT))
-        goto not_obj;
-    p = JS_VALUE_GET_OBJ(obj);
-    prs = find_own_property(&pr, p, js_symbol_to_atom(ctx, brand));
-    if (!prs) {
-        JS_ThrowTypeError(ctx, "invalid brand on object");
+    if (unlikely(JS_VALUE_GET_TAG(obj) != JS_TAG_OBJECT)) {
+    not_obj:
+        JS_ThrowTypeErrorNotAnObject(ctx);
         return -1;
     }
-    return 0;
+    p = JS_VALUE_GET_OBJ(obj);
+    prs = find_own_property(&pr, p, js_symbol_to_atom(ctx, brand));
+    return (prs != NULL);
 }
 
 static uint32_t js_string_obj_get_length(JSContext *ctx,
@@ -11574,6 +11565,8 @@ JSValue JS_ToStringInternal(JSContext *ctx, JSValue val, BOOL is_ToPropertyKey)
         return js_dtoa(ctx, JS_VALUE_GET_FLOAT64(val), 0, JS_DTOA_TOSTRING);
     case JS_TAG_BIG_INT:
         return js_bigint_to_string(ctx, val);
+    case JS_TAG_UNINITIALIZED:
+        return js_new_string8(ctx, "[uninitialized]");
     default:
         return js_new_string8(ctx, "[unsupported type]");
     }
@@ -13221,6 +13214,41 @@ static __exception int js_operator_in(JSContext *ctx, JSValue *sp)
     JS_FreeValue(ctx, op1);
     JS_FreeValue(ctx, op2);
     sp[-2] = js_bool(ret);
+    return 0;
+}
+
+static __exception int js_operator_private_in(JSContext *ctx, JSValue *sp)
+{
+    JSValue op1, op2;
+    int ret;
+    op1 = sp[-2]; /* object */
+    op2 = sp[-1]; /* field name or method function */
+    if (JS_VALUE_GET_TAG(op1) != JS_TAG_OBJECT) {
+        JS_ThrowTypeError(ctx, "invalid 'in' operand");
+        return -1;
+    }
+    if (JS_IsObject(op2)) {
+        /* method: use the brand */
+        ret = JS_CheckBrand(ctx, op1, op2);
+        if (ret < 0)
+            return -1;
+    } else {
+        JSAtom atom;
+        JSObject *p;
+        JSShapeProperty *prs;
+        JSProperty *pr;
+        /* field */
+        atom = JS_ValueToAtom(ctx, op2);
+        if (unlikely(atom == JS_ATOM_NULL))
+            return -1;
+        p = JS_VALUE_GET_OBJ(op1);
+        prs = find_own_property(&pr, p, atom);
+        JS_FreeAtom(ctx, atom);
+        ret = (prs != NULL);
+    }
+    JS_FreeValue(ctx, op1);
+    JS_FreeValue(ctx, op2);
+    sp[-2] = JS_NewBool(ctx, ret);
     return 0;
 }
 
@@ -15229,8 +15257,15 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValue func_obj,
             }
             BREAK;
         CASE(OP_check_brand):
-            if (JS_CheckBrand(ctx, sp[-2], sp[-1]) < 0)
-                goto exception;
+            {
+                int ret = JS_CheckBrand(ctx, sp[-2], sp[-1]);
+                if (ret < 0)
+                    goto exception;
+                if (!ret) {
+                    JS_ThrowTypeError(ctx, "invalid brand on object");
+                    goto exception;
+                }
+            }
             BREAK;
         CASE(OP_add_brand):
             if (JS_AddBrand(ctx, sp[-2], sp[-1]) < 0)
@@ -16943,6 +16978,11 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValue func_obj,
         CASE(OP_in):
             sf->cur_pc = pc;
             if (js_operator_in(ctx, sp))
+                goto exception;
+            sp--;
+            BREAK;
+        CASE(OP_private_in):
+            if (js_operator_private_in(ctx, sp))
                 goto exception;
             sp--;
             BREAK;
@@ -21520,8 +21560,9 @@ static JSAtom get_private_setter_name(JSContext *ctx, JSAtom name)
 typedef struct {
     JSFunctionDef *fields_init_fd;
     int computed_fields_count;
-    BOOL has_brand;
+    BOOL need_brand;
     int brand_push_pos;
+    BOOL is_static;
 } ClassFieldsDef;
 
 static __exception int emit_class_init_start(JSParseState *s,
@@ -21535,41 +21576,27 @@ static __exception int emit_class_init_start(JSParseState *s,
 
     s->cur_func = cf->fields_init_fd;
 
-    /* XXX: would be better to add the code only if needed, maybe in a
-       later pass */
-    emit_op(s, OP_push_false); /* will be patched later */
-    cf->brand_push_pos = cf->fields_init_fd->last_opcode_pos;
-    label_add_brand = emit_goto(s, OP_if_false, -1);
+    if (!cf->is_static) {
+        /* add the brand to the newly created instance */
+        /* XXX: would be better to add the code only if needed, maybe in a
+           later pass */
+        emit_op(s, OP_push_false); /* will be patched later */
+        cf->brand_push_pos = cf->fields_init_fd->last_opcode_pos;
+        label_add_brand = emit_goto(s, OP_if_false, -1);
 
-    emit_op(s, OP_scope_get_var);
-    emit_atom(s, JS_ATOM_this);
-    emit_u16(s, 0);
+        emit_op(s, OP_scope_get_var);
+        emit_atom(s, JS_ATOM_this);
+        emit_u16(s, 0);
 
-    emit_op(s, OP_scope_get_var);
-    emit_atom(s, JS_ATOM_home_object);
-    emit_u16(s, 0);
+        emit_op(s, OP_scope_get_var);
+        emit_atom(s, JS_ATOM_home_object);
+        emit_u16(s, 0);
 
-    emit_op(s, OP_add_brand);
+        emit_op(s, OP_add_brand);
 
-    emit_label(s, label_add_brand);
-
-    s->cur_func = s->cur_func->parent;
-    return 0;
-}
-
-static __exception int add_brand(JSParseState *s, ClassFieldsDef *cf)
-{
-    if (!cf->has_brand) {
-        /* define the brand field in 'this' of the initializer */
-        if (!cf->fields_init_fd) {
-            if (emit_class_init_start(s, cf))
-                return -1;
-        }
-        /* patch the start of the function to enable the OP_add_brand code */
-        cf->fields_init_fd->byte_code.buf[cf->brand_push_pos] = OP_push_true;
-
-        cf->has_brand = TRUE;
+        emit_label(s, label_add_brand);
     }
+    s->cur_func = s->cur_func->parent;
     return 0;
 }
 
@@ -21771,7 +21798,8 @@ static __exception int js_parse_class(JSParseState *s, BOOL is_class_expr,
         ClassFieldsDef *cf = &class_fields[i];
         cf->fields_init_fd = NULL;
         cf->computed_fields_count = 0;
-        cf->has_brand = FALSE;
+        cf->need_brand = FALSE;
+        cf->is_static = i;
     }
 
     ctor_fd = NULL;
@@ -21880,8 +21908,7 @@ static __exception int js_parse_class(JSParseState *s, BOOL is_class_expr,
                                                 JS_VAR_PRIVATE_GETTER + is_set, is_static) < 0)
                         goto fail;
                 }
-                if (add_brand(s, &class_fields[is_static]) < 0)
-                    goto fail;
+                class_fields[is_static].need_brand = TRUE;
             }
 
             if (js_parse_function_decl2(s, JS_PARSE_FUNC_GETTER + is_set,
@@ -22038,8 +22065,7 @@ static __exception int js_parse_class(JSParseState *s, BOOL is_class_expr,
                     func_type = JS_PARSE_FUNC_CLASS_CONSTRUCTOR;
             }
             if (is_private) {
-                if (add_brand(s, &class_fields[is_static]) < 0)
-                    goto fail;
+                class_fields[is_static].need_brand = TRUE;
             }
             if (js_parse_function_decl2(s, func_type, func_kind, JS_ATOM_NULL,
                                         start_ptr,
@@ -22106,12 +22132,29 @@ static __exception int js_parse_class(JSParseState *s, BOOL is_class_expr,
     if (next_token(s))
         goto fail;
 
-    /* store the function to initialize the fields to that it can be
-       referenced by the constructor */
     {
         ClassFieldsDef *cf = &class_fields[0];
         int var_idx;
 
+        if (cf->need_brand) {
+            /* add a private brand to the prototype */
+            emit_op(s, OP_dup);
+            emit_op(s, OP_null);
+            emit_op(s, OP_swap);
+            emit_op(s, OP_add_brand);
+
+            /* define the brand field in 'this' of the initializer */
+            if (!cf->fields_init_fd) {
+                if (emit_class_init_start(s, cf))
+                    goto fail;
+            }
+            /* patch the start of the function to enable the
+               OP_add_brand_instance code */
+            cf->fields_init_fd->byte_code.buf[cf->brand_push_pos] = OP_push_true;
+        }
+
+        /* store the function to initialize the fields to that it can be
+           referenced by the constructor */
         var_idx = define_var(s, fd, JS_ATOM_class_fields_init,
                              JS_VAR_DEF_CONST);
         if (var_idx < 0)
@@ -22128,6 +22171,13 @@ static __exception int js_parse_class(JSParseState *s, BOOL is_class_expr,
 
     /* drop the prototype */
     emit_op(s, OP_drop);
+
+    if (class_fields[1].need_brand) {
+        /* add a private brand to the class */
+        emit_op(s, OP_dup);
+        emit_op(s, OP_dup);
+        emit_op(s, OP_add_brand);
+    }
 
     /* initialize the static fields */
     if (class_fields[1].fields_init_fd != NULL) {
@@ -23976,9 +24026,31 @@ static __exception int js_parse_expr_binary(JSParseState *s, int level,
 
     if (level == 0) {
         return js_parse_unary(s, PF_POW_ALLOWED);
+    } else if (s->token.val == TOK_PRIVATE_NAME &&
+               (parse_flags & PF_IN_ACCEPTED) && level == 4 &&
+               peek_token(s, FALSE) == TOK_IN) {
+        JSAtom atom;
+        atom = JS_DupAtom(s->ctx, s->token.u.ident.atom);
+        if (next_token(s))
+            goto fail_private_in;
+        if (s->token.val != TOK_IN)
+            goto fail_private_in;
+        if (next_token(s))
+            goto fail_private_in;
+        if (js_parse_expr_binary(s, level - 1, parse_flags)) {
+        fail_private_in:
+            JS_FreeAtom(s->ctx, atom);
+            return -1;
+        }
+        emit_op(s, OP_scope_in_private_field);
+        emit_atom(s, atom);
+        emit_u16(s, s->cur_func->scope_level);
+        JS_FreeAtom(s->ctx, atom);
+        return 0;
+    } else {
+        if (js_parse_expr_binary(s, level - 1, parse_flags))
+            return -1;
     }
-    if (js_parse_expr_binary(s, level - 1, parse_flags))
-        return -1;
     for(;;) {
         op = s->token.val;
         switch(level) {
@@ -29584,6 +29656,10 @@ static int resolve_scope_private_field(JSContext *ctx, JSFunctionDef *s,
             abort();
         }
         break;
+    case OP_scope_in_private_field:
+        get_loc_or_ref(bc, is_ref, idx);
+        dbuf_putc(bc, OP_private_in);
+        break;
     default:
         abort();
     }
@@ -30292,6 +30368,7 @@ static __exception int resolve_variables(JSContext *ctx, JSFunctionDef *s)
         case OP_scope_get_private_field:
         case OP_scope_get_private_field2:
         case OP_scope_put_private_field:
+        case OP_scope_in_private_field:
             {
                 int ret;
                 var_name = get_u32(bc_buf + pos + 1);
@@ -33335,9 +33412,10 @@ typedef enum BCTagEnum {
     BC_TAG_OBJECT_REFERENCE,
     BC_TAG_MAP,
     BC_TAG_SET,
+    BC_TAG_SYMBOL,
 } BCTagEnum;
 
-#define BC_VERSION 14
+#define BC_VERSION 16
 
 typedef struct BCWriterState {
     JSContext *ctx;
@@ -33383,6 +33461,9 @@ static const char * const bc_tag_str[] = {
     "Date",
     "ObjectValue",
     "ObjectReference",
+    "Map",
+    "Set",
+    "Symbol",
 };
 #endif
 
@@ -33894,9 +33975,7 @@ static int JS_WriteObjectTag(BCWriterState *s, JSValue obj)
             bc_put_leb128(s, prop_count);
         for(i = 0, pr = get_shape_prop(sh); i < sh->prop_count; i++, pr++) {
             atom = pr->atom;
-            if (atom != JS_ATOM_NULL &&
-                JS_AtomIsString(s->ctx, atom) &&
-                (pr->flags & JS_PROP_ENUMERABLE)) {
+            if (atom != JS_ATOM_NULL && (pr->flags & JS_PROP_ENUMERABLE)) {
                 if (pr->flags & JS_PROP_TMASK) {
                     JS_ThrowTypeError(s->ctx, "only value properties are supported");
                     goto fail;
@@ -34111,6 +34190,18 @@ static int JS_WriteObjectRec(BCWriterState *s, JSValue obj)
         if (JS_WriteBigInt(s, obj))
             goto fail;
         break;
+    case JS_TAG_SYMBOL:
+        {
+            JSAtomStruct *p = JS_VALUE_GET_PTR(obj);
+            if (p->atom_type != JS_ATOM_TYPE_GLOBAL_SYMBOL && p->atom_type != JS_ATOM_TYPE_SYMBOL) {
+                JS_ThrowTypeError(s->ctx, "unsupported symbol type");
+                goto fail;
+            }
+            JSAtom atom = js_get_atom_index(s->ctx->rt, p);
+            bc_put_u8(s, BC_TAG_SYMBOL);
+            bc_put_atom(s, atom);
+        }
+        break;
     default:
     invalid_tag:
         JS_ThrowInternalError(s->ctx, "unsupported tag (%d)", tag);
@@ -34135,8 +34226,19 @@ static int JS_WriteObjectAtoms(BCWriterState *s)
 
     bc_put_leb128(s, s->idx_to_atom_count);
     for(i = 0; i < s->idx_to_atom_count; i++) {
-        JSAtomStruct *p = rt->atom_array[s->idx_to_atom[i]];
-        JS_WriteString(s, p);
+        JSAtom atom = s->idx_to_atom[i];
+        if (__JS_AtomIsConst(atom)) {
+            bc_put_u8(s, 0 /* the type */);
+            /* TODO(saghul): encoding for tagged integers and keyword-ish atoms could be
+               more efficient. */
+            bc_put_u32(s, atom);
+        } else {
+            JSAtomStruct *p = rt->atom_array[atom];
+            uint8_t type = p->atom_type;
+            assert(type != JS_ATOM_TYPE_PRIVATE);
+            bc_put_u8(s, type);
+            JS_WriteString(s, p);
+        }
     }
     /* XXX: should check for OOM in above phase */
 
@@ -35344,6 +35446,19 @@ static JSValue JS_ReadObjectRec(BCReaderState *s)
     case BC_TAG_SET:
         obj = JS_ReadSet(s);
         break;
+    case BC_TAG_SYMBOL:
+        {
+            JSAtom atom;
+            if (bc_get_atom(s, &atom))
+                return JS_EXCEPTION;
+            if (__JS_AtomIsConst(atom)) {
+                obj = JS_AtomToValue(s->ctx, atom);
+            } else {
+                JSAtomStruct *p = s->ctx->rt->atom_array[atom];
+                obj = JS_NewSymbolFromAtom(s->ctx, atom, p->atom_type);
+            }
+        }
+        break;
     default:
     invalid_tag:
         return JS_ThrowSyntaxError(ctx, "invalid tag (tag=%d pos=%u)",
@@ -35355,7 +35470,7 @@ static JSValue JS_ReadObjectRec(BCReaderState *s)
 
 static int JS_ReadObjectAtoms(BCReaderState *s)
 {
-    uint8_t v8;
+    uint8_t v8, type;
     JSString *p;
     int i;
     JSAtom atom;
@@ -35379,10 +35494,22 @@ static int JS_ReadObjectAtoms(BCReaderState *s)
             return s->error_state = -1;
     }
     for(i = 0; i < s->idx_to_atom_count; i++) {
-        p = JS_ReadString(s);
-        if (!p)
+        if (bc_get_u8(s, &type)) {
             return -1;
-        atom = JS_NewAtomStr(s->ctx, p);
+        }
+        if (type == 0) {
+            if (bc_get_u32(s, &atom))
+                return -1;
+        } else {
+            if (type < JS_ATOM_TYPE_STRING || type >= JS_ATOM_TYPE_PRIVATE) {
+                JS_ThrowInternalError(s->ctx, "invalid symbol type %d", type);
+                return -1;
+            }
+            p = JS_ReadString(s);
+            if (!p)
+                return -1;
+            atom = __JS_NewAtom(s->ctx->rt, p, type);
+        }
         if (atom == JS_ATOM_NULL)
             return s->error_state = -1;
         s->idx_to_atom[i] = atom;
