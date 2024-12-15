@@ -38,21 +38,25 @@ pub unsafe fn JS_ValueGetTag(v: JSValue) -> i32 {
 }
 
 /// Increment the refcount of this value
+#[cfg(feature = "bellard")]
 pub unsafe fn JS_DupValue(ctx: *mut JSContext, v: JSValue) {
     JS_DupValue_real(ctx, v);
 }
 
 /// Increment the refcount of this value
+#[cfg(feature = "bellard")]
 pub unsafe fn JS_DupValueRT(rt: *mut JSRuntime, v: JSValue) {
     JS_DupValueRT_real(rt, v);
 }
 
 /// Decrement the refcount of this value
+#[cfg(feature = "bellard")]
 pub unsafe fn JS_FreeValue(ctx: *mut JSContext, v: JSValue) {
     JS_FreeValue_real(ctx, v);
 }
 
 /// Decrement the refcount of this value
+#[cfg(feature = "bellard")]
 pub unsafe fn JS_FreeValueRT(rt: *mut JSRuntime, v: JSValue) {
     JS_FreeValueRT_real(rt, v);
 }

@@ -233,8 +233,8 @@ pub const JS_DEF_PROP_UNDEFINED: u32 = 7;
 pub const JS_DEF_OBJECT: u32 = 8;
 pub const JS_DEF_ALIAS: u32 = 9;
 pub const QJS_VERSION_MAJOR: u32 = 0;
-pub const QJS_VERSION_MINOR: u32 = 6;
-pub const QJS_VERSION_PATCH: u32 = 1;
+pub const QJS_VERSION_MINOR: u32 = 7;
+pub const QJS_VERSION_PATCH: u32 = 0;
 pub const QJS_VERSION_SUFFIX: &[u8; 1] = b"\0";
 pub type __gnuc_va_list = __builtin_va_list;
 pub type __u_char = ::std::os::raw::c_uchar;
@@ -3022,11 +3022,7 @@ extern "C" {
 extern "C" {
     pub static mut signgam: ::std::os::raw::c_int;
 }
-//pub const FP_NAN: _bindgen_ty_1 = 0;
-//pub const FP_INFINITE: _bindgen_ty_1 = 1;
-//pub const FP_ZERO: _bindgen_ty_1 = 2;
-//pub const FP_SUBNORMAL: _bindgen_ty_1 = 3;
-//pub const FP_NORMAL: _bindgen_ty_1 = 4;
+
 pub type _bindgen_ty_1 = ::std::os::raw::c_uint;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -3066,36 +3062,6 @@ pub const JS_TAG_CATCH_OFFSET: _bindgen_ty_2 = 5;
 pub const JS_TAG_EXCEPTION: _bindgen_ty_2 = 6;
 pub const JS_TAG_FLOAT64: _bindgen_ty_2 = 7;
 pub type _bindgen_ty_2 = ::std::os::raw::c_int;
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct JSRefCountHeader {
-    pub ref_count: ::std::os::raw::c_int,
-}
-#[test]
-fn bindgen_test_layout_JSRefCountHeader() {
-    const UNINIT: ::std::mem::MaybeUninit<JSRefCountHeader> = ::std::mem::MaybeUninit::uninit();
-    let ptr = UNINIT.as_ptr();
-    assert_eq!(
-        ::std::mem::size_of::<JSRefCountHeader>(),
-        4usize,
-        concat!("Size of: ", stringify!(JSRefCountHeader))
-    );
-    assert_eq!(
-        ::std::mem::align_of::<JSRefCountHeader>(),
-        4usize,
-        concat!("Alignment of ", stringify!(JSRefCountHeader))
-    );
-    assert_eq!(
-        unsafe { ::std::ptr::addr_of!((*ptr).ref_count) as usize - ptr as usize },
-        0usize,
-        concat!(
-            "Offset of field: ",
-            stringify!(JSRefCountHeader),
-            "::",
-            stringify!(ref_count)
-        )
-    );
-}
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub union JSValueUnion {
@@ -3310,6 +3276,9 @@ fn bindgen_test_layout_JSMallocFunctions() {
         )
     );
 }
+pub type JSRuntimeFinalizer = ::std::option::Option<
+    unsafe extern "C" fn(rt: *mut JSRuntime, arg: *mut ::std::os::raw::c_void),
+>;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct JSGCObjectHeader {
@@ -3354,6 +3323,13 @@ extern "C" {
 extern "C" {
     pub fn JS_SetRuntimeOpaque(rt: *mut JSRuntime, opaque: *mut ::std::os::raw::c_void);
 }
+extern "C" {
+    pub fn JS_AddRuntimeFinalizer(
+        rt: *mut JSRuntime,
+        finalizer: JSRuntimeFinalizer,
+        arg: *mut ::std::os::raw::c_void,
+    ) -> ::std::os::raw::c_int;
+}
 pub type JS_MarkFunc =
     ::std::option::Option<unsafe extern "C" fn(rt: *mut JSRuntime, gp: *mut JSGCObjectHeader)>;
 extern "C" {
@@ -3388,6 +3364,9 @@ extern "C" {
 }
 extern "C" {
     pub fn JS_GetClassProto(ctx: *mut JSContext, class_id: JSClassID) -> JSValue;
+}
+extern "C" {
+    pub fn JS_GetFunctionProto(ctx: *mut JSContext) -> JSValue;
 }
 extern "C" {
     pub fn JS_NewContextRaw(rt: *mut JSRuntime) -> *mut JSContext;
@@ -4308,10 +4287,16 @@ extern "C" {
     pub fn JS_ThrowOutOfMemory(ctx: *mut JSContext) -> JSValue;
 }
 extern "C" {
-    pub fn __JS_FreeValue(ctx: *mut JSContext, v: JSValue);
+    pub fn JS_FreeValue(ctx: *mut JSContext, v: JSValue);
 }
 extern "C" {
-    pub fn __JS_FreeValueRT(rt: *mut JSRuntime, v: JSValue);
+    pub fn JS_FreeValueRT(rt: *mut JSRuntime, v: JSValue);
+}
+extern "C" {
+    pub fn JS_DupValue(ctx: *mut JSContext, v: JSValue) -> JSValue;
+}
+extern "C" {
+    pub fn JS_DupValueRT(rt: *mut JSRuntime, v: JSValue) -> JSValue;
 }
 extern "C" {
     pub fn JS_ToBool(ctx: *mut JSContext, val: JSValue) -> ::std::os::raw::c_int;
@@ -4640,7 +4625,8 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
-    pub fn JS_SetOpaque(obj: JSValue, opaque: *mut ::std::os::raw::c_void);
+    pub fn JS_SetOpaque(obj: JSValue, opaque: *mut ::std::os::raw::c_void)
+        -> ::std::os::raw::c_int;
 }
 extern "C" {
     pub fn JS_GetOpaque(obj: JSValue, class_id: JSClassID) -> *mut ::std::os::raw::c_void;
@@ -5686,6 +5672,9 @@ extern "C" {
 }
 extern "C" {
     pub fn JS_GetVersion() -> *const ::std::os::raw::c_char;
+}
+extern "C" {
+    pub fn js_std_cmd(cmd: ::std::os::raw::c_int, ...) -> usize;
 }
 pub type __builtin_va_list = [__va_list_tag; 1usize];
 #[repr(C)]

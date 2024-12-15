@@ -1,5 +1,14 @@
 # hirofa-quickjs_sys - Changelog
 
+## 0.7.0
+
+* updated quickjs-ng to 0.7.0
+* set bellard as default feature
+
+## 0.6.1
+
+* updated quickjs-ng to 0.6.1
+
 ## 0.6.0
 
 * updated quickjs-ng to 0.6.0
@@ -14,7 +23,7 @@
 
 ## 0.3.0
 
-* quckjs-ng working
+* quickjs-ng working
 
 ## 0.1.0
 
