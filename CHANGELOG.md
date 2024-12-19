@@ -1,5 +1,9 @@
 # hirofa-quickjs_sys - Changelog
 
+## 0.7.1
+
+* clippy fixes, suppress warnings when using quickjs-ng
+
 ## 0.7.0
 
 * updated quickjs-ng to 0.7.0

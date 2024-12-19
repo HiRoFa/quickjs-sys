@@ -1,9 +1,13 @@
 
 extern "C" {
     fn JS_ValueGetTag_real(v: JSValue) -> i32;
+    #[cfg(feature = "bellard")]
     fn JS_DupValue_real(ctx: *mut JSContext, v: JSValue);
+    #[cfg(feature = "bellard")]
     fn JS_DupValueRT_real(rt: *mut JSRuntime, v: JSValue);
+    #[cfg(feature = "bellard")]
     fn JS_FreeValue_real(ctx: *mut JSContext, v: JSValue);
+    #[cfg(feature = "bellard")]
     fn JS_FreeValueRT_real(rt: *mut JSRuntime, v: JSValue);
     fn JS_NewBool_real(ctx: *mut JSContext, v: bool) -> JSValue;
     fn JS_NewInt32_real(ctx: *mut JSContext, v: i32) -> JSValue;
