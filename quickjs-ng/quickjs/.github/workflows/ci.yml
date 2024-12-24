@@ -160,37 +160,10 @@ jobs:
           git submodule update --init --checkout --depth 1
           time make test262
 
-  linux-gcc48:
-    runs-on: ubuntu-latest
-    container:
-      image: ubuntu:18.04
-    # Work around an issue where the node from actions/checkout is too new
-    # to run inside the old container image.
-    env:
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-    steps:
-      - name: install dependencies
+      - name: test standalone
         run: |
-          apt update && apt -y install make gcc-4.8 cmake software-properties-common
-          # git in default ppa repository is too old to run submodule checkout
-          add-apt-repository -y ppa:git-core/ppa
-          apt update && apt install -y git
-      - name: checkout
-        uses: actions/checkout@v3
-        with:
-          submodules: true
-      - name: build
-        env:
-          CC: gcc-4.8
-        run: |
-          mkdir build
-          cd build
-          cmake ..
-          cd ..
-          make -C build -j$(getconf _NPROCESSORS_ONLN)
-      - name: stats
-        run: |
-          ./build/qjs -qd
+          ./build/qjs -c examples/hello.js -o hello
+          ./hello
 
   windows-msvc:
     runs-on: windows-latest
@@ -216,6 +189,10 @@ jobs:
           build\${{matrix.buildType}}\qjs.exe examples\test_point.js
           build\${{matrix.buildType}}\run-test262.exe -c tests.conf
           build\${{matrix.buildType}}\function_source.exe
+      - name: test standalone
+        run: |
+          build\${{matrix.buildType}}\qjs.exe -c examples\hello.js -o hello.exe
+          .\hello.exe
       - name: Set up Visual Studio shell
         uses: egor-tensin/vs-shell@v2
         with:
@@ -308,6 +285,36 @@ jobs:
           build\run-test262.exe -c tests.conf
           build\function_source.exe
 
+  windows-sdk:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, Win32]
+        buildType: [Debug, Release]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install windows sdk
+        uses: ChristopheLav/windows-sdk-install@v1
+        with:
+          version-sdk: 26100
+          features: 'OptionId.DesktopCPPx86,OptionId.DesktopCPPx64'
+      - name: build
+        run: |
+          cmake -B build -DBUILD_EXAMPLES=ON -DCMAKE_SYSTEM_VERSION="10.0.26100.0" -A ${{matrix.arch}}
+          cmake --build build --config ${{matrix.buildType}}
+      - name: stats
+        run: |
+          build\${{matrix.buildType}}\qjs.exe -qd
+      - name: test
+        run: |
+          cp build\${{matrix.buildType}}\fib.dll examples\
+          cp build\${{matrix.buildType}}\point.dll examples\
+          build\${{matrix.buildType}}\qjs.exe examples\test_fib.js
+          build\${{matrix.buildType}}\qjs.exe examples\test_point.js
+          build\${{matrix.buildType}}\run-test262.exe -c tests.conf
+          build\${{matrix.buildType}}\function_source.exe
+
   windows-mingw:
     runs-on: windows-latest
     strategy:
@@ -353,6 +360,10 @@ jobs:
     - name: test
       run: |
         make test
+    - name: test standalone
+      run: |
+        ./build/qjs -c examples/hello.js -o hello.exe
+        ./hello
   windows-mingw-shared:
     runs-on: windows-latest
     defaults:

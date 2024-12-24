@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.10)
 
 project(quickjs LANGUAGES C)
 
@@ -212,7 +212,10 @@ find_package(Threads)
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "WASI")
     list(APPEND qjs_libs ${CMAKE_THREAD_LIBS_INIT})
 endif()
-if(NOT MSVC)
+
+# try to find libm
+find_library(M_LIBRARIES m)
+if(M_LIBRARIES OR CMAKE_C_COMPILER_ID STREQUAL "TinyCC")
     list(APPEND qjs_libs m)
 endif()
 
@@ -259,6 +262,7 @@ target_link_libraries(qjsc qjs)
 
 add_executable(qjs_exe
     gen/repl.c
+    gen/standalone.c
     qjs.c
 )
 add_qjs_libc_if_needed(qjs_exe)
@@ -392,6 +396,7 @@ if(NOT IOS)
         install(FILES quickjs-libc.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
     endif()
     install(TARGETS qjs_exe RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(TARGETS qjsc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
     install(TARGETS qjs EXPORT qjsConfig
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
             LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

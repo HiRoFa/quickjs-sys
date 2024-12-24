@@ -45,6 +45,7 @@ typedef pthread_t js_thread_t;
 
 #include "cutils.h"
 #include "list.h"
+#include "quickjs.h"
 #include "quickjs-c-atomics.h"
 #include "quickjs-libc.h"
 
@@ -397,7 +398,7 @@ void namelist_free(namelist_t *lp)
 static int add_test_file(const char *filename)
 {
     namelist_t *lp = &test_list;
-    if (has_suffix(filename, ".js") && !has_suffix(filename, "_FIXTURE.js"))
+    if (js__has_suffix(filename, ".js") && !js__has_suffix(filename, "_FIXTURE.js"))
         namelist_add(lp, NULL, filename);
     return 0;
 }
@@ -471,7 +472,7 @@ static JSValue js_print_262(JSContext *ctx, JSValue this_val,
             return JS_EXCEPTION;
         if (!strcmp(str, "Test262:AsyncTestComplete")) {
             tls->async_done++;
-        } else if (strstart(str, "Test262:AsyncTestFailure", NULL)) {
+        } else if (js__strstart(str, "Test262:AsyncTestFailure", NULL)) {
             tls->async_done = 2; /* force an error */
         }
         if (outfile) {
@@ -514,7 +515,7 @@ static JSValue js_evalScript_262(JSContext *ctx, JSValue this_val,
 static void start_thread(js_thread_t *thrd, void *(*start)(void *), void *arg)
 {
     // musl libc gives threads 80 kb stacks, much smaller than
-    // JS_DEFAULT_STACK_SIZE (256 kb)
+    // JS_DEFAULT_STACK_SIZE (1 MB)
     static const unsigned stacksize = 2 << 20; // 2 MB, glibc default
 #ifdef _WIN32
     HANDLE h, cp;
@@ -1061,7 +1062,7 @@ void update_exclude_dirs(void)
     /* split directpries from exclude_list */
     for (count = i = 0; i < ep->count; i++) {
         name = ep->array[i];
-        if (has_suffix(name, "/")) {
+        if (js__has_suffix(name, "/")) {
             namelist_add(dp, NULL, name);
             free(name);
         } else {
@@ -1264,7 +1265,7 @@ char *find_error(const char *filename, int *pline, int is_strict)
                     q++;
                 }
                 /* check strict mode indicator */
-                if (!strstart(q, "strict mode: ", &q) != !is_strict)
+                if (!js__strstart(q, "strict mode: ", &q) != !is_strict)
                     continue;
                 r = q = skip_prefix(q, "unexpected error: ");
                 r += strcspn(r, "\n");
@@ -1485,7 +1486,7 @@ static int eval_buf(JSContext *ctx, const char *buf, size_t buf_len,
             if (ret == 0) {
                 if (msg && s &&
                     (str_equal(s, "expected error") ||
-                     strstart(s, "unexpected error type:", NULL) ||
+                     js__strstart(s, "unexpected error type:", NULL) ||
                      str_equal(s, msg))) {     // did not have error yet
                     if (!has_error_line) {
                         longest_match(buf, msg, pos, &pos, pos_line, &error_line);
@@ -1554,7 +1555,12 @@ static int eval_buf(JSContext *ctx, const char *buf, size_t buf_len,
     }
 
     if (local) {
-        js_std_loop(ctx);
+        JSValue val = js_std_loop(ctx);
+        if (JS_IsException(val)) {
+            js_std_dump_error1(ctx, val);
+            ret = -1;
+        }
+        JS_FreeValue(ctx, val);
     }
 
     JS_FreeCString(ctx, error_name);
