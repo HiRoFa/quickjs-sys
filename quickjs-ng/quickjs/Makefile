@@ -1,10 +1,10 @@
 #
 # QuickJS Javascript Engine
 #
-# Copyright (c) 2017-2021 Fabrice Bellard
-# Copyright (c) 2017-2021 Charlie Gordon
-# Copyright (c) 2023 Ben Noordhuis
-# Copyright (c) 2023 Saúl Ibarra Corretgé
+# Copyright (c) 2017-2024 Fabrice Bellard
+# Copyright (c) 2017-2024 Charlie Gordon
+# Copyright (c) 2023-2025 Ben Noordhuis
+# Copyright (c) 2023-2025 Saúl Ibarra Corretgé
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -45,6 +45,15 @@ endif
 
 all: $(QJS)
 
+amalgam: TEMP := $(shell mktemp -d)
+amalgam: $(QJS)
+	$(QJS) amalgam.js $(TEMP)/quickjs-amalgam.c
+	cp quickjs.h quickjs-libc.h $(TEMP)
+	cd $(TEMP) && zip -9 quickjs-amalgam.zip quickjs-amalgam.c quickjs.h quickjs-libc.h
+	cp $(TEMP)/quickjs-amalgam.zip $(BUILD_DIR)
+	cd $(TEMP) && $(RM) quickjs-amalgam.zip quickjs-amalgam.c quickjs.h quickjs-libc.h
+	$(RM) -d $(TEMP)
+
 fuzz:
 	clang -g -O1 -fsanitize=address,undefined,fuzzer -o fuzz fuzz.c
 	./fuzz
@@ -57,9 +66,6 @@ $(QJS): $(BUILD_DIR)
 
 $(QJSC): $(BUILD_DIR)
 	cmake --build $(BUILD_DIR) --target qjsc -j $(JOBS)
-
-$(BUILD_DIR)/test_conv: $(BUILD_DIR) tests/test_conv.c
-	cmake --build $(BUILD_DIR) --target test_conv
 
 install: $(QJS) $(QJSC)
 	cmake --build $(BUILD_DIR) --target install
@@ -84,6 +90,23 @@ distclean:
 stats: $(QJS)
 	$(QJS) -qd
 
+jscheck: CFLAGS=-I. -D_GNU_SOURCE -DJS_CHECK_JSVALUE -Wall -Werror -fsyntax-only -c -o /dev/null
+jscheck:
+	$(CC) $(CFLAGS) api-test.c
+	$(CC) $(CFLAGS) ctest.c
+	$(CC) $(CFLAGS) fuzz.c
+	$(CC) $(CFLAGS) gen/function_source.c
+	$(CC) $(CFLAGS) gen/hello.c
+	$(CC) $(CFLAGS) gen/hello_module.c
+	$(CC) $(CFLAGS) gen/repl.c
+	$(CC) $(CFLAGS) gen/standalone.c
+	$(CC) $(CFLAGS) gen/test_fib.c
+	$(CC) $(CFLAGS) qjs.c
+	$(CC) $(CFLAGS) qjsc.c
+	$(CC) $(CFLAGS) quickjs-libc.c
+	$(CC) $(CFLAGS) quickjs.c
+	$(CC) $(CFLAGS) run-test262.c
+
 # effectively .PHONY because it doesn't generate output
 ctest: CFLAGS=-std=c11 -fsyntax-only -Wall -Wextra -Werror -pedantic
 ctest: ctest.c quickjs.h
@@ -98,9 +121,6 @@ cxxtest: cxxtest.cc quickjs.h
 
 test: $(QJS)
 	$(RUN262) -c tests.conf
-
-testconv: $(BUILD_DIR)/test_conv
-	$(BUILD_DIR)/test_conv
 
 test262: $(QJS)
 	$(RUN262) -m -c test262.conf -a
@@ -123,4 +143,4 @@ unicode_gen: $(BUILD_DIR)
 libunicode-table.h: unicode_gen
 	$(BUILD_DIR)/unicode_gen unicode $@
 
-.PHONY: all ctest cxxtest debug fuzz install clean codegen distclean stats test test262 test262-update test262-check microbench unicode_gen $(QJS) $(QJSC)
+.PHONY: all amalgam ctest cxxtest debug fuzz jscheck install clean codegen distclean stats test test262 test262-update test262-check microbench unicode_gen $(QJS) $(QJSC)

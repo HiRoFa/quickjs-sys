@@ -33,11 +33,11 @@ JSValue JS_NewInt32_real(JSContext *ctx, int32_t val) {
     return JS_NewInt32(ctx, val);
 }
 
-JSValue JS_NewBool_real(JSContext *ctx, JS_BOOL val) {
+JSValue JS_NewBool_real(JSContext *ctx, bool val) {
     return JS_NewBool(ctx, val) ;
 }
 
-JS_BOOL JS_VALUE_IS_NAN_real(JSValue v) {
+bool JS_VALUE_IS_NAN_real(JSValue v) {
     return JS_VALUE_IS_NAN(v);
 }
 
@@ -49,43 +49,43 @@ int JS_VALUE_GET_NORM_TAG_real(JSValue v) {
     return JS_VALUE_GET_NORM_TAG(v);
 }
 
-JS_BOOL JS_IsNumber_real(JSValueConst v) {
+bool JS_IsNumber_real(JSValueConst v) {
     return JS_IsNumber(v);
 }
 
-JS_BOOL JS_IsBigInt_real(JSContext *ctx, JSValueConst v) {
+bool JS_IsBigInt_real(JSContext *ctx, JSValueConst v) {
     return JS_IsBigInt(ctx, v);
 }
 
-JS_BOOL JS_IsBool_real(JSValueConst v) {
+bool JS_IsBool_real(JSValueConst v) {
     return JS_IsBool(v);
 }
 
-JS_BOOL JS_IsNull_real(JSValueConst v) {
+bool JS_IsNull_real(JSValueConst v) {
     return JS_IsNull(v);
 }
 
-JS_BOOL JS_IsUndefined_real(JSValueConst v) {
+bool JS_IsUndefined_real(JSValueConst v) {
     return JS_IsUndefined(v);
 }
 
-JS_BOOL JS_IsException_real(JSValueConst v) {
+bool JS_IsException_real(JSValueConst v) {
     return JS_IsException(v);
 }
 
-JS_BOOL JS_IsUninitialized_real(JSValueConst v) {
+bool JS_IsUninitialized_real(JSValueConst v) {
     return JS_IsUninitialized(v);
 }
 
-JS_BOOL JS_IsString_real(JSValueConst v) {
+bool JS_IsString_real(JSValueConst v) {
     return JS_IsString(v);
 }
 
-JS_BOOL JS_IsSymbol_real(JSValueConst v) {
+bool JS_IsSymbol_real(JSValueConst v) {
     return JS_IsSymbol(v);
 }
 
-JS_BOOL JS_IsObject_real(JSValueConst v) {
+bool JS_IsObject_real(JSValueConst v) {
     return JS_IsObject(v);
 }
 

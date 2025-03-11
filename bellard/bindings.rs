@@ -813,25 +813,25 @@ fn bindgen_test_layout__IO_FILE() {
 pub type va_list = __gnuc_va_list;
 pub type off_t = __off_t;
 pub type fpos_t = __fpos_t;
-extern "C" {
+unsafe extern "C" {
     pub static mut stdin: *mut FILE;
 }
-extern "C" {
+unsafe extern "C" {
     pub static mut stdout: *mut FILE;
 }
-extern "C" {
+unsafe extern "C" {
     pub static mut stderr: *mut FILE;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn remove(__filename: *const ::std::os::raw::c_char) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn rename(
         __old: *const ::std::os::raw::c_char,
         __new: *const ::std::os::raw::c_char,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn renameat(
         __oldfd: ::std::os::raw::c_int,
         __old: *const ::std::os::raw::c_char,
@@ -839,64 +839,64 @@ extern "C" {
         __new: *const ::std::os::raw::c_char,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fclose(__stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn tmpfile() -> *mut FILE;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn tmpnam(arg1: *mut ::std::os::raw::c_char) -> *mut ::std::os::raw::c_char;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn tmpnam_r(__s: *mut ::std::os::raw::c_char) -> *mut ::std::os::raw::c_char;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn tempnam(
         __dir: *const ::std::os::raw::c_char,
         __pfx: *const ::std::os::raw::c_char,
     ) -> *mut ::std::os::raw::c_char;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fflush(__stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fflush_unlocked(__stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fopen(
         __filename: *const ::std::os::raw::c_char,
         __modes: *const ::std::os::raw::c_char,
     ) -> *mut FILE;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn freopen(
         __filename: *const ::std::os::raw::c_char,
         __modes: *const ::std::os::raw::c_char,
         __stream: *mut FILE,
     ) -> *mut FILE;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fdopen(__fd: ::std::os::raw::c_int, __modes: *const ::std::os::raw::c_char)
         -> *mut FILE;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fmemopen(
         __s: *mut ::std::os::raw::c_void,
         __len: usize,
         __modes: *const ::std::os::raw::c_char,
     ) -> *mut FILE;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn open_memstream(
         __bufloc: *mut *mut ::std::os::raw::c_char,
         __sizeloc: *mut usize,
     ) -> *mut FILE;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn setbuf(__stream: *mut FILE, __buf: *mut ::std::os::raw::c_char);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn setvbuf(
         __stream: *mut FILE,
         __buf: *mut ::std::os::raw::c_char,
@@ -904,50 +904,50 @@ extern "C" {
         __n: usize,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn setbuffer(__stream: *mut FILE, __buf: *mut ::std::os::raw::c_char, __size: usize);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn setlinebuf(__stream: *mut FILE);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fprintf(
         __stream: *mut FILE,
         __format: *const ::std::os::raw::c_char,
         ...
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn printf(__format: *const ::std::os::raw::c_char, ...) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn sprintf(
         __s: *mut ::std::os::raw::c_char,
         __format: *const ::std::os::raw::c_char,
         ...
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn vfprintf(
         __s: *mut FILE,
         __format: *const ::std::os::raw::c_char,
         __arg: *mut __va_list_tag,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn vprintf(
         __format: *const ::std::os::raw::c_char,
         __arg: *mut __va_list_tag,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn vsprintf(
         __s: *mut ::std::os::raw::c_char,
         __format: *const ::std::os::raw::c_char,
         __arg: *mut __va_list_tag,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn snprintf(
         __s: *mut ::std::os::raw::c_char,
         __maxlen: ::std::os::raw::c_ulong,
@@ -955,7 +955,7 @@ extern "C" {
         ...
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn vsnprintf(
         __s: *mut ::std::os::raw::c_char,
         __maxlen: ::std::os::raw::c_ulong,
@@ -963,31 +963,31 @@ extern "C" {
         __arg: *mut __va_list_tag,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn vdprintf(
         __fd: ::std::os::raw::c_int,
         __fmt: *const ::std::os::raw::c_char,
         __arg: *mut __va_list_tag,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn dprintf(
         __fd: ::std::os::raw::c_int,
         __fmt: *const ::std::os::raw::c_char,
         ...
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fscanf(
         __stream: *mut FILE,
         __format: *const ::std::os::raw::c_char,
         ...
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn scanf(__format: *const ::std::os::raw::c_char, ...) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn sscanf(
         __s: *const ::std::os::raw::c_char,
         __format: *const ::std::os::raw::c_char,
@@ -998,7 +998,7 @@ pub type _Float32 = f32;
 pub type _Float64 = f64;
 pub type _Float32x = f64;
 pub type _Float64x = u128;
-extern "C" {
+unsafe extern "C" {
     #[link_name = "\u{1}__isoc99_fscanf"]
     pub fn fscanf1(
         __stream: *mut FILE,
@@ -1006,11 +1006,11 @@ extern "C" {
         ...
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     #[link_name = "\u{1}__isoc99_scanf"]
     pub fn scanf1(__format: *const ::std::os::raw::c_char, ...) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     #[link_name = "\u{1}__isoc99_sscanf"]
     pub fn sscanf1(
         __s: *const ::std::os::raw::c_char,
@@ -1018,27 +1018,27 @@ extern "C" {
         ...
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn vfscanf(
         __s: *mut FILE,
         __format: *const ::std::os::raw::c_char,
         __arg: *mut __va_list_tag,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn vscanf(
         __format: *const ::std::os::raw::c_char,
         __arg: *mut __va_list_tag,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn vsscanf(
         __s: *const ::std::os::raw::c_char,
         __format: *const ::std::os::raw::c_char,
         __arg: *mut __va_list_tag,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     #[link_name = "\u{1}__isoc99_vfscanf"]
     pub fn vfscanf1(
         __s: *mut FILE,
@@ -1046,14 +1046,14 @@ extern "C" {
         __arg: *mut __va_list_tag,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     #[link_name = "\u{1}__isoc99_vscanf"]
     pub fn vscanf1(
         __format: *const ::std::os::raw::c_char,
         __arg: *mut __va_list_tag,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     #[link_name = "\u{1}__isoc99_vsscanf"]
     pub fn vsscanf1(
         __s: *const ::std::os::raw::c_char,
@@ -1061,57 +1061,57 @@ extern "C" {
         __arg: *mut __va_list_tag,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fgetc(__stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn getc(__stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn getchar() -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn getc_unlocked(__stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn getchar_unlocked() -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fgetc_unlocked(__stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fputc(__c: ::std::os::raw::c_int, __stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn putc(__c: ::std::os::raw::c_int, __stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn putchar(__c: ::std::os::raw::c_int) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fputc_unlocked(__c: ::std::os::raw::c_int, __stream: *mut FILE)
         -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn putc_unlocked(__c: ::std::os::raw::c_int, __stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn putchar_unlocked(__c: ::std::os::raw::c_int) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn getw(__stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn putw(__w: ::std::os::raw::c_int, __stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fgets(
         __s: *mut ::std::os::raw::c_char,
         __n: ::std::os::raw::c_int,
         __stream: *mut FILE,
     ) -> *mut ::std::os::raw::c_char;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn __getdelim(
         __lineptr: *mut *mut ::std::os::raw::c_char,
         __n: *mut usize,
@@ -1119,7 +1119,7 @@ extern "C" {
         __stream: *mut FILE,
     ) -> __ssize_t;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn getdelim(
         __lineptr: *mut *mut ::std::os::raw::c_char,
         __n: *mut usize,
@@ -1127,23 +1127,23 @@ extern "C" {
         __stream: *mut FILE,
     ) -> __ssize_t;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn getline(
         __lineptr: *mut *mut ::std::os::raw::c_char,
         __n: *mut usize,
         __stream: *mut FILE,
     ) -> __ssize_t;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fputs(__s: *const ::std::os::raw::c_char, __stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn puts(__s: *const ::std::os::raw::c_char) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn ungetc(__c: ::std::os::raw::c_int, __stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fread(
         __ptr: *mut ::std::os::raw::c_void,
         __size: ::std::os::raw::c_ulong,
@@ -1151,7 +1151,7 @@ extern "C" {
         __stream: *mut FILE,
     ) -> ::std::os::raw::c_ulong;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fwrite(
         __ptr: *const ::std::os::raw::c_void,
         __size: ::std::os::raw::c_ulong,
@@ -1159,7 +1159,7 @@ extern "C" {
         __s: *mut FILE,
     ) -> ::std::os::raw::c_ulong;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fread_unlocked(
         __ptr: *mut ::std::os::raw::c_void,
         __size: usize,
@@ -1167,7 +1167,7 @@ extern "C" {
         __stream: *mut FILE,
     ) -> usize;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fwrite_unlocked(
         __ptr: *const ::std::os::raw::c_void,
         __size: usize,
@@ -1175,87 +1175,87 @@ extern "C" {
         __stream: *mut FILE,
     ) -> usize;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fseek(
         __stream: *mut FILE,
         __off: ::std::os::raw::c_long,
         __whence: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn ftell(__stream: *mut FILE) -> ::std::os::raw::c_long;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn rewind(__stream: *mut FILE);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fseeko(
         __stream: *mut FILE,
         __off: __off_t,
         __whence: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn ftello(__stream: *mut FILE) -> __off_t;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fgetpos(__stream: *mut FILE, __pos: *mut fpos_t) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fsetpos(__stream: *mut FILE, __pos: *const fpos_t) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn clearerr(__stream: *mut FILE);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn feof(__stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn ferror(__stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn clearerr_unlocked(__stream: *mut FILE);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn feof_unlocked(__stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn ferror_unlocked(__stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn perror(__s: *const ::std::os::raw::c_char);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fileno(__stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn fileno_unlocked(__stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn pclose(__stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn popen(
         __command: *const ::std::os::raw::c_char,
         __modes: *const ::std::os::raw::c_char,
     ) -> *mut FILE;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn ctermid(__s: *mut ::std::os::raw::c_char) -> *mut ::std::os::raw::c_char;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn flockfile(__stream: *mut FILE);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn ftrylockfile(__stream: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn funlockfile(__stream: *mut FILE);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn __uflow(arg1: *mut FILE) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn __overflow(arg1: *mut FILE, arg2: ::std::os::raw::c_int) -> ::std::os::raw::c_int;
 }
 pub type int_least8_t = __int_least8_t;
@@ -1608,126 +1608,126 @@ fn bindgen_test_layout_JSMallocFunctions() {
 pub struct JSGCObjectHeader {
     _unused: [u8; 0],
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewRuntime() -> *mut JSRuntime;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetRuntimeInfo(rt: *mut JSRuntime, info: *const ::std::os::raw::c_char);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetMemoryLimit(rt: *mut JSRuntime, limit: usize);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetGCThreshold(rt: *mut JSRuntime, gc_threshold: usize);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetMaxStackSize(rt: *mut JSRuntime, stack_size: usize);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_UpdateStackTop(rt: *mut JSRuntime);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewRuntime2(
         mf: *const JSMallocFunctions,
         opaque: *mut ::std::os::raw::c_void,
     ) -> *mut JSRuntime;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_FreeRuntime(rt: *mut JSRuntime);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_GetRuntimeOpaque(rt: *mut JSRuntime) -> *mut ::std::os::raw::c_void;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetRuntimeOpaque(rt: *mut JSRuntime, opaque: *mut ::std::os::raw::c_void);
 }
 pub type JS_MarkFunc =
     ::std::option::Option<unsafe extern "C" fn(rt: *mut JSRuntime, gp: *mut JSGCObjectHeader)>;
-extern "C" {
+unsafe extern "C" {
     pub fn JS_MarkValue(rt: *mut JSRuntime, val: JSValue, mark_func: JS_MarkFunc);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_RunGC(rt: *mut JSRuntime);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_IsLiveObject(rt: *mut JSRuntime, obj: JSValue) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewContext(rt: *mut JSRuntime) -> *mut JSContext;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_FreeContext(s: *mut JSContext);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_DupContext(ctx: *mut JSContext) -> *mut JSContext;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_GetContextOpaque(ctx: *mut JSContext) -> *mut ::std::os::raw::c_void;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetContextOpaque(ctx: *mut JSContext, opaque: *mut ::std::os::raw::c_void);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_GetRuntime(ctx: *mut JSContext) -> *mut JSRuntime;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetClassProto(ctx: *mut JSContext, class_id: JSClassID, obj: JSValue);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_GetClassProto(ctx: *mut JSContext, class_id: JSClassID) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewContextRaw(rt: *mut JSRuntime) -> *mut JSContext;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_AddIntrinsicBaseObjects(ctx: *mut JSContext);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_AddIntrinsicDate(ctx: *mut JSContext);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_AddIntrinsicEval(ctx: *mut JSContext);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_AddIntrinsicStringNormalize(ctx: *mut JSContext);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_AddIntrinsicRegExpCompiler(ctx: *mut JSContext);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_AddIntrinsicRegExp(ctx: *mut JSContext);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_AddIntrinsicJSON(ctx: *mut JSContext);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_AddIntrinsicProxy(ctx: *mut JSContext);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_AddIntrinsicMapSet(ctx: *mut JSContext);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_AddIntrinsicTypedArrays(ctx: *mut JSContext);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_AddIntrinsicPromise(ctx: *mut JSContext);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_AddIntrinsicBigInt(ctx: *mut JSContext);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_AddIntrinsicBigFloat(ctx: *mut JSContext);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_AddIntrinsicBigDecimal(ctx: *mut JSContext);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_AddIntrinsicOperators(ctx: *mut JSContext);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_EnableBignumExt(ctx: *mut JSContext, enable: ::std::os::raw::c_int);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn js_string_codePointRange(
         ctx: *mut JSContext,
         this_val: JSValue,
@@ -1735,45 +1735,45 @@ extern "C" {
         argv: *mut JSValue,
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn js_malloc_rt(rt: *mut JSRuntime, size: usize) -> *mut ::std::os::raw::c_void;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn js_free_rt(rt: *mut JSRuntime, ptr: *mut ::std::os::raw::c_void);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn js_realloc_rt(
         rt: *mut JSRuntime,
         ptr: *mut ::std::os::raw::c_void,
         size: usize,
     ) -> *mut ::std::os::raw::c_void;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn js_malloc_usable_size_rt(
         rt: *mut JSRuntime,
         ptr: *const ::std::os::raw::c_void,
     ) -> usize;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn js_mallocz_rt(rt: *mut JSRuntime, size: usize) -> *mut ::std::os::raw::c_void;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn js_malloc(ctx: *mut JSContext, size: usize) -> *mut ::std::os::raw::c_void;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn js_free(ctx: *mut JSContext, ptr: *mut ::std::os::raw::c_void);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn js_realloc(
         ctx: *mut JSContext,
         ptr: *mut ::std::os::raw::c_void,
         size: usize,
     ) -> *mut ::std::os::raw::c_void;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn js_malloc_usable_size(ctx: *mut JSContext, ptr: *const ::std::os::raw::c_void) -> usize;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn js_realloc2(
         ctx: *mut JSContext,
         ptr: *mut ::std::os::raw::c_void,
@@ -1781,16 +1781,16 @@ extern "C" {
         pslack: *mut usize,
     ) -> *mut ::std::os::raw::c_void;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn js_mallocz(ctx: *mut JSContext, size: usize) -> *mut ::std::os::raw::c_void;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn js_strdup(
         ctx: *mut JSContext,
         str_: *const ::std::os::raw::c_char,
     ) -> *mut ::std::os::raw::c_char;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn js_strndup(
         ctx: *mut JSContext,
         s: *const ::std::os::raw::c_char,
@@ -2102,44 +2102,44 @@ fn bindgen_test_layout_JSMemoryUsage() {
         )
     );
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ComputeMemoryUsage(rt: *mut JSRuntime, s: *mut JSMemoryUsage);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_DumpMemoryUsage(fp: *mut FILE, s: *const JSMemoryUsage, rt: *mut JSRuntime);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewAtomLen(
         ctx: *mut JSContext,
         str_: *const ::std::os::raw::c_char,
         len: usize,
     ) -> JSAtom;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewAtom(ctx: *mut JSContext, str_: *const ::std::os::raw::c_char) -> JSAtom;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewAtomUInt32(ctx: *mut JSContext, n: u32) -> JSAtom;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_DupAtom(ctx: *mut JSContext, v: JSAtom) -> JSAtom;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_FreeAtom(ctx: *mut JSContext, v: JSAtom);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_FreeAtomRT(rt: *mut JSRuntime, v: JSAtom);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_AtomToValue(ctx: *mut JSContext, atom: JSAtom) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_AtomToString(ctx: *mut JSContext, atom: JSAtom) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_AtomToCString(ctx: *mut JSContext, atom: JSAtom) -> *const ::std::os::raw::c_char;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ValueToAtom(ctx: *mut JSContext, val: JSValue) -> JSAtom;
 }
 #[repr(C)]
@@ -2483,134 +2483,134 @@ fn bindgen_test_layout_JSClassDef() {
         )
     );
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewClassID(pclass_id: *mut JSClassID) -> JSClassID;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewClass(
         rt: *mut JSRuntime,
         class_id: JSClassID,
         class_def: *const JSClassDef,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_IsRegisteredClass(rt: *mut JSRuntime, class_id: JSClassID) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewBigInt64(ctx: *mut JSContext, v: i64) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewBigUint64(ctx: *mut JSContext, v: u64) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_Throw(ctx: *mut JSContext, obj: JSValue) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_GetException(ctx: *mut JSContext) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_IsError(ctx: *mut JSContext, val: JSValue) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ResetUncatchableError(ctx: *mut JSContext);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewError(ctx: *mut JSContext) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ThrowSyntaxError(
         ctx: *mut JSContext,
         fmt: *const ::std::os::raw::c_char,
         ...
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ThrowTypeError(
         ctx: *mut JSContext,
         fmt: *const ::std::os::raw::c_char,
         ...
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ThrowReferenceError(
         ctx: *mut JSContext,
         fmt: *const ::std::os::raw::c_char,
         ...
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ThrowRangeError(
         ctx: *mut JSContext,
         fmt: *const ::std::os::raw::c_char,
         ...
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ThrowInternalError(
         ctx: *mut JSContext,
         fmt: *const ::std::os::raw::c_char,
         ...
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ThrowOutOfMemory(ctx: *mut JSContext) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn __JS_FreeValue(ctx: *mut JSContext, v: JSValue);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn __JS_FreeValueRT(rt: *mut JSRuntime, v: JSValue);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ToBool(ctx: *mut JSContext, val: JSValue) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ToInt32(ctx: *mut JSContext, pres: *mut i32, val: JSValue) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ToInt64(ctx: *mut JSContext, pres: *mut i64, val: JSValue) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ToIndex(ctx: *mut JSContext, plen: *mut u64, val: JSValue) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ToFloat64(ctx: *mut JSContext, pres: *mut f64, val: JSValue)
         -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ToBigInt64(
         ctx: *mut JSContext,
         pres: *mut i64,
         val: JSValue,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ToInt64Ext(
         ctx: *mut JSContext,
         pres: *mut i64,
         val: JSValue,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewStringLen(
         ctx: *mut JSContext,
         str1: *const ::std::os::raw::c_char,
         len1: usize,
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewString(ctx: *mut JSContext, str_: *const ::std::os::raw::c_char) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewAtomString(ctx: *mut JSContext, str_: *const ::std::os::raw::c_char) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ToString(ctx: *mut JSContext, val: JSValue) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ToPropertyKey(ctx: *mut JSContext, val: JSValue) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ToCStringLen2(
         ctx: *mut JSContext,
         plen: *mut usize,
@@ -2618,45 +2618,45 @@ extern "C" {
         cesu8: ::std::os::raw::c_int,
     ) -> *const ::std::os::raw::c_char;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_FreeCString(ctx: *mut JSContext, ptr: *const ::std::os::raw::c_char);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewObjectProtoClass(
         ctx: *mut JSContext,
         proto: JSValue,
         class_id: JSClassID,
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewObjectClass(ctx: *mut JSContext, class_id: ::std::os::raw::c_int) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewObjectProto(ctx: *mut JSContext, proto: JSValue) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewObject(ctx: *mut JSContext) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_IsFunction(ctx: *mut JSContext, val: JSValue) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_IsConstructor(ctx: *mut JSContext, val: JSValue) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetConstructorBit(
         ctx: *mut JSContext,
         func_obj: JSValue,
         val: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewArray(ctx: *mut JSContext) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_IsArray(ctx: *mut JSContext, val: JSValue) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_GetPropertyInternal(
         ctx: *mut JSContext,
         obj: JSValue,
@@ -2665,17 +2665,17 @@ extern "C" {
         throw_ref_error: ::std::os::raw::c_int,
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_GetPropertyStr(
         ctx: *mut JSContext,
         this_obj: JSValue,
         prop: *const ::std::os::raw::c_char,
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_GetPropertyUint32(ctx: *mut JSContext, this_obj: JSValue, idx: u32) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetPropertyInternal(
         ctx: *mut JSContext,
         obj: JSValue,
@@ -2685,7 +2685,7 @@ extern "C" {
         flags: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetPropertyUint32(
         ctx: *mut JSContext,
         this_obj: JSValue,
@@ -2693,7 +2693,7 @@ extern "C" {
         val: JSValue,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetPropertyInt64(
         ctx: *mut JSContext,
         this_obj: JSValue,
@@ -2701,7 +2701,7 @@ extern "C" {
         val: JSValue,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetPropertyStr(
         ctx: *mut JSContext,
         this_obj: JSValue,
@@ -2709,20 +2709,20 @@ extern "C" {
         val: JSValue,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_HasProperty(
         ctx: *mut JSContext,
         this_obj: JSValue,
         prop: JSAtom,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_IsExtensible(ctx: *mut JSContext, obj: JSValue) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_PreventExtensions(ctx: *mut JSContext, obj: JSValue) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_DeleteProperty(
         ctx: *mut JSContext,
         obj: JSValue,
@@ -2730,17 +2730,17 @@ extern "C" {
         flags: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetPrototype(
         ctx: *mut JSContext,
         obj: JSValue,
         proto_val: JSValue,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_GetPrototype(ctx: *mut JSContext, val: JSValue) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_GetOwnPropertyNames(
         ctx: *mut JSContext,
         ptab: *mut *mut JSPropertyEnum,
@@ -2749,7 +2749,7 @@ extern "C" {
         flags: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_GetOwnProperty(
         ctx: *mut JSContext,
         desc: *mut JSPropertyDescriptor,
@@ -2757,7 +2757,7 @@ extern "C" {
         prop: JSAtom,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_Call(
         ctx: *mut JSContext,
         func_obj: JSValue,
@@ -2766,7 +2766,7 @@ extern "C" {
         argv: *mut JSValue,
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_Invoke(
         ctx: *mut JSContext,
         this_val: JSValue,
@@ -2775,7 +2775,7 @@ extern "C" {
         argv: *mut JSValue,
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_CallConstructor(
         ctx: *mut JSContext,
         func_obj: JSValue,
@@ -2783,7 +2783,7 @@ extern "C" {
         argv: *mut JSValue,
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_CallConstructor2(
         ctx: *mut JSContext,
         func_obj: JSValue,
@@ -2792,13 +2792,13 @@ extern "C" {
         argv: *mut JSValue,
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_DetectModule(
         input: *const ::std::os::raw::c_char,
         input_len: usize,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_Eval(
         ctx: *mut JSContext,
         input: *const ::std::os::raw::c_char,
@@ -2807,7 +2807,7 @@ extern "C" {
         eval_flags: ::std::os::raw::c_int,
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_EvalThis(
         ctx: *mut JSContext,
         this_obj: JSValue,
@@ -2817,17 +2817,17 @@ extern "C" {
         eval_flags: ::std::os::raw::c_int,
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_GetGlobalObject(ctx: *mut JSContext) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_IsInstanceOf(
         ctx: *mut JSContext,
         val: JSValue,
         obj: JSValue,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_DefineProperty(
         ctx: *mut JSContext,
         this_obj: JSValue,
@@ -2838,7 +2838,7 @@ extern "C" {
         flags: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_DefinePropertyValue(
         ctx: *mut JSContext,
         this_obj: JSValue,
@@ -2847,7 +2847,7 @@ extern "C" {
         flags: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_DefinePropertyValueUint32(
         ctx: *mut JSContext,
         this_obj: JSValue,
@@ -2856,7 +2856,7 @@ extern "C" {
         flags: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_DefinePropertyValueStr(
         ctx: *mut JSContext,
         this_obj: JSValue,
@@ -2865,7 +2865,7 @@ extern "C" {
         flags: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_DefinePropertyGetSet(
         ctx: *mut JSContext,
         this_obj: JSValue,
@@ -2875,20 +2875,20 @@ extern "C" {
         flags: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetOpaque(obj: JSValue, opaque: *mut ::std::os::raw::c_void);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_GetOpaque(obj: JSValue, class_id: JSClassID) -> *mut ::std::os::raw::c_void;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_GetOpaque2(
         ctx: *mut JSContext,
         obj: JSValue,
         class_id: JSClassID,
     ) -> *mut ::std::os::raw::c_void;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ParseJSON(
         ctx: *mut JSContext,
         buf: *const ::std::os::raw::c_char,
@@ -2896,7 +2896,7 @@ extern "C" {
         filename: *const ::std::os::raw::c_char,
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ParseJSON2(
         ctx: *mut JSContext,
         buf: *const ::std::os::raw::c_char,
@@ -2905,7 +2905,7 @@ extern "C" {
         flags: ::std::os::raw::c_int,
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_JSONStringify(
         ctx: *mut JSContext,
         obj: JSValue,
@@ -2920,7 +2920,7 @@ pub type JSFreeArrayBufferDataFunc = ::std::option::Option<
         ptr: *mut ::std::os::raw::c_void,
     ),
 >;
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewArrayBuffer(
         ctx: *mut JSContext,
         buf: *mut u8,
@@ -2930,16 +2930,16 @@ extern "C" {
         is_shared: ::std::os::raw::c_int,
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewArrayBufferCopy(ctx: *mut JSContext, buf: *const u8, len: usize) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_DetachArrayBuffer(ctx: *mut JSContext, obj: JSValue);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_GetArrayBuffer(ctx: *mut JSContext, psize: *mut usize, obj: JSValue) -> *mut u8;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_GetTypedArrayBuffer(
         ctx: *mut JSContext,
         obj: JSValue,
@@ -3021,7 +3021,7 @@ fn bindgen_test_layout_JSSharedArrayBufferFunctions() {
         )
     );
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetSharedArrayBufferFunctions(
         rt: *mut JSRuntime,
         sf: *const JSSharedArrayBufferFunctions,
@@ -3031,13 +3031,13 @@ pub const JSPromiseStateEnum_JS_PROMISE_PENDING: JSPromiseStateEnum = 0;
 pub const JSPromiseStateEnum_JS_PROMISE_FULFILLED: JSPromiseStateEnum = 1;
 pub const JSPromiseStateEnum_JS_PROMISE_REJECTED: JSPromiseStateEnum = 2;
 pub type JSPromiseStateEnum = ::std::os::raw::c_uint;
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewPromiseCapability(ctx: *mut JSContext, resolving_funcs: *mut JSValue) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_PromiseState(ctx: *mut JSContext, promise: JSValue) -> JSPromiseStateEnum;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_PromiseResult(ctx: *mut JSContext, promise: JSValue) -> JSValue;
 }
 pub type JSHostPromiseRejectionTracker = ::std::option::Option<
@@ -3049,7 +3049,7 @@ pub type JSHostPromiseRejectionTracker = ::std::option::Option<
         opaque: *mut ::std::os::raw::c_void,
     ),
 >;
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetHostPromiseRejectionTracker(
         rt: *mut JSRuntime,
         cb: JSHostPromiseRejectionTracker,
@@ -3062,17 +3062,17 @@ pub type JSInterruptHandler = ::std::option::Option<
         opaque: *mut ::std::os::raw::c_void,
     ) -> ::std::os::raw::c_int,
 >;
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetInterruptHandler(
         rt: *mut JSRuntime,
         cb: JSInterruptHandler,
         opaque: *mut ::std::os::raw::c_void,
     );
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetCanBlock(rt: *mut JSRuntime, can_block: ::std::os::raw::c_int);
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetIsHTMLDDA(ctx: *mut JSContext, obj: JSValue);
 }
 #[repr(C)]
@@ -3095,7 +3095,7 @@ pub type JSModuleLoaderFunc = ::std::option::Option<
         opaque: *mut ::std::os::raw::c_void,
     ) -> *mut JSModuleDef,
 >;
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetModuleLoaderFunc(
         rt: *mut JSRuntime,
         module_normalize: JSModuleNormalizeFunc,
@@ -3103,10 +3103,10 @@ extern "C" {
         opaque: *mut ::std::os::raw::c_void,
     );
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_GetImportMeta(ctx: *mut JSContext, m: *mut JSModuleDef) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_GetModuleName(ctx: *mut JSContext, m: *mut JSModuleDef) -> JSAtom;
 }
 pub type JSJobFunc = ::std::option::Option<
@@ -3116,7 +3116,7 @@ pub type JSJobFunc = ::std::option::Option<
         argv: *mut JSValue,
     ) -> JSValue,
 >;
-extern "C" {
+unsafe extern "C" {
     pub fn JS_EnqueueJob(
         ctx: *mut JSContext,
         job_func: JSJobFunc,
@@ -3124,16 +3124,16 @@ extern "C" {
         argv: *mut JSValue,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_IsJobPending(rt: *mut JSRuntime) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ExecutePendingJob(
         rt: *mut JSRuntime,
         pctx: *mut *mut JSContext,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_WriteObject(
         ctx: *mut JSContext,
         psize: *mut usize,
@@ -3141,7 +3141,7 @@ extern "C" {
         flags: ::std::os::raw::c_int,
     ) -> *mut u8;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_WriteObject2(
         ctx: *mut JSContext,
         psize: *mut usize,
@@ -3151,7 +3151,7 @@ extern "C" {
         psab_tab_len: *mut usize,
     ) -> *mut u8;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ReadObject(
         ctx: *mut JSContext,
         buf: *const u8,
@@ -3159,19 +3159,19 @@ extern "C" {
         flags: ::std::os::raw::c_int,
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_EvalFunction(ctx: *mut JSContext, fun_obj: JSValue) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_ResolveModule(ctx: *mut JSContext, obj: JSValue) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_GetScriptOrModuleName(
         ctx: *mut JSContext,
         n_stack_levels: ::std::os::raw::c_int,
     ) -> JSAtom;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_LoadModule(
         ctx: *mut JSContext,
         basename: *const ::std::os::raw::c_char,
@@ -3385,7 +3385,7 @@ fn bindgen_test_layout_JSCFunctionType() {
         )
     );
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewCFunction2(
         ctx: *mut JSContext,
         func: JSCFunction,
@@ -3395,7 +3395,7 @@ extern "C" {
         magic: ::std::os::raw::c_int,
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewCFunctionData(
         ctx: *mut JSContext,
         func: JSCFunctionData,
@@ -3405,7 +3405,7 @@ extern "C" {
         data: *mut JSValue,
     ) -> JSValue;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetConstructor(ctx: *mut JSContext, func_obj: JSValue, proto: JSValue);
 }
 #[repr(C)]
@@ -3796,7 +3796,7 @@ fn bindgen_test_layout_JSCFunctionListEntry() {
         )
     );
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetPropertyFunctionList(
         ctx: *mut JSContext,
         obj: JSValue,
@@ -3807,21 +3807,21 @@ extern "C" {
 pub type JSModuleInitFunc = ::std::option::Option<
     unsafe extern "C" fn(ctx: *mut JSContext, m: *mut JSModuleDef) -> ::std::os::raw::c_int,
 >;
-extern "C" {
+unsafe extern "C" {
     pub fn JS_NewCModule(
         ctx: *mut JSContext,
         name_str: *const ::std::os::raw::c_char,
         func: JSModuleInitFunc,
     ) -> *mut JSModuleDef;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_AddModuleExport(
         ctx: *mut JSContext,
         m: *mut JSModuleDef,
         name_str: *const ::std::os::raw::c_char,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_AddModuleExportList(
         ctx: *mut JSContext,
         m: *mut JSModuleDef,
@@ -3829,7 +3829,7 @@ extern "C" {
         len: ::std::os::raw::c_int,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetModuleExport(
         ctx: *mut JSContext,
         m: *mut JSModuleDef,
@@ -3837,7 +3837,7 @@ extern "C" {
         val: JSValue,
     ) -> ::std::os::raw::c_int;
 }
-extern "C" {
+unsafe extern "C" {
     pub fn JS_SetModuleExportList(
         ctx: *mut JSContext,
         m: *mut JSModuleDef,

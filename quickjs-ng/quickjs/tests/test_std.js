@@ -19,11 +19,15 @@ function test_printf()
 
 function test_file1()
 {
-    var f, len, str, size, buf, ret, i, str1;
+    var f, len, str, size, buf, ret, i, str1, ab;
 
     f = std.tmpfile();
     str = "hello world\n";
     f.puts(str);
+
+    f.seek(0, std.SEEK_SET);
+    ab = f.readAsArrayBuffer();
+    assert([...new Uint8Array(ab)], str.split("").map(c => c.charCodeAt(0)));
 
     f.seek(0, std.SEEK_SET);
     str1 = f.readAsString();
@@ -89,14 +93,15 @@ function test_getline()
 function test_popen()
 {
     var str, f, fname = "tmp_file.txt";
-    var content = "hello world";
+    var ta, content = "hello world";
     var cmd = isWin ? "type" : "cat";
 
-    f = std.open(fname, "w");
-    f.puts(content);
-    f.close();
-
-    /* test loadFile */
+    ta = new Uint8Array([...content].map(c => c.charCodeAt(0)));
+    std.writeFile(fname, ta);
+    assert(std.loadFile(fname), content);
+    std.writeFile(fname, ta.buffer);
+    assert(std.loadFile(fname), content);
+    std.writeFile(fname, content);
     assert(std.loadFile(fname), content);
 
     /* execute shell command */
@@ -258,8 +263,6 @@ function test_timeout()
 
 function test_timeout_order()
 {
-    if (globalThis.__running_with_sanitizer__) return;
-
     var s = "";
     os.setTimeout(a, 0);
     os.setTimeout(b, 100);
