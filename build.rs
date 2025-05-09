@@ -38,17 +38,32 @@ fn main() {
     eprintln!("Compiling quickjs...");
     let quickjs_version =
         std::fs::read_to_string(code_dir.join("VERSION")).expect("failed to read quickjs version");
+
+    #[cfg(feature = "bellard")]
+    let files = [
+        "cutils.c",
+        "dtoa.c",
+        "libregexp.c",
+        "libunicode.c",
+        "quickjs.c",
+        // Custom wrappers.
+        "static-functions.c",
+    ];
+    #[cfg(feature = "quickjs-ng")]
+    let files = [
+        "cutils.c",
+        "xsum.c",
+        "libregexp.c",
+        "libunicode.c",
+        "quickjs.c",
+        // Custom wrappers.
+        "static-functions.c",
+    ];
+
     cc::Build::new()
+
         .files(
-            [
-                "cutils.c",
-                "libbf.c",
-                "libregexp.c",
-                "libunicode.c",
-                "quickjs.c",
-                // Custom wrappers.
-                "static-functions.c",
-            ]
+            files
             .iter()
             .map(|f| code_dir.join(f)),
         )

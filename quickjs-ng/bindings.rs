@@ -405,7 +405,7 @@ pub const JS_DEF_PROP_UNDEFINED: u32 = 7;
 pub const JS_DEF_OBJECT: u32 = 8;
 pub const JS_DEF_ALIAS: u32 = 9;
 pub const QJS_VERSION_MAJOR: u32 = 0;
-pub const QJS_VERSION_MINOR: u32 = 9;
+pub const QJS_VERSION_MINOR: u32 = 10;
 pub const QJS_VERSION_PATCH: u32 = 0;
 pub const QJS_VERSION_SUFFIX: &[u8; 1] = b"\0";
 pub type __gnuc_va_list = __builtin_va_list;
@@ -2889,7 +2889,6 @@ unsafe extern "C" {
 unsafe extern "C" {
     pub static mut signgam: ::std::os::raw::c_int;
 }
-
 pub type _bindgen_ty_1 = ::std::os::raw::c_uint;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -2927,7 +2926,8 @@ pub const JS_TAG_UNDEFINED: _bindgen_ty_2 = 3;
 pub const JS_TAG_UNINITIALIZED: _bindgen_ty_2 = 4;
 pub const JS_TAG_CATCH_OFFSET: _bindgen_ty_2 = 5;
 pub const JS_TAG_EXCEPTION: _bindgen_ty_2 = 6;
-pub const JS_TAG_FLOAT64: _bindgen_ty_2 = 7;
+pub const JS_TAG_SHORT_BIG_INT: _bindgen_ty_2 = 7;
+pub const JS_TAG_FLOAT64: _bindgen_ty_2 = 8;
 pub type _bindgen_ty_2 = ::std::os::raw::c_int;
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -2935,6 +2935,7 @@ pub union JSValueUnion {
     pub int32: i32,
     pub float64: f64,
     pub ptr: *mut ::std::os::raw::c_void,
+    pub short_big_int: i32,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
@@ -2944,6 +2945,8 @@ const _: () = {
     ["Offset of field: JSValueUnion::float64"]
         [::std::mem::offset_of!(JSValueUnion, float64) - 0usize];
     ["Offset of field: JSValueUnion::ptr"][::std::mem::offset_of!(JSValueUnion, ptr) - 0usize];
+    ["Offset of field: JSValueUnion::short_big_int"]
+        [::std::mem::offset_of!(JSValueUnion, short_big_int) - 0usize];
 };
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -3718,6 +3721,9 @@ unsafe extern "C" {
     ) -> JSValue;
 }
 unsafe extern "C" {
+    pub fn JS_NewTwoByteString(ctx: *mut JSContext, buf: *const u16, len: usize) -> JSValue;
+}
+unsafe extern "C" {
     pub fn JS_NewAtomString(ctx: *mut JSContext, str_: *const ::std::os::raw::c_char) -> JSValue;
 }
 unsafe extern "C" {
@@ -4233,6 +4239,27 @@ unsafe extern "C" {
         description: *const ::std::os::raw::c_char,
         is_global: bool,
     ) -> JSValue;
+}
+pub const JSPromiseHookType_JS_PROMISE_HOOK_INIT: JSPromiseHookType = 0;
+pub const JSPromiseHookType_JS_PROMISE_HOOK_BEFORE: JSPromiseHookType = 1;
+pub const JSPromiseHookType_JS_PROMISE_HOOK_AFTER: JSPromiseHookType = 2;
+pub const JSPromiseHookType_JS_PROMISE_HOOK_RESOLVE: JSPromiseHookType = 3;
+pub type JSPromiseHookType = ::std::os::raw::c_uint;
+pub type JSPromiseHook = ::std::option::Option<
+    unsafe extern "C" fn(
+        ctx: *mut JSContext,
+        type_: JSPromiseHookType,
+        promise: JSValue,
+        parent_promise: JSValue,
+        opaque: *mut ::std::os::raw::c_void,
+    ),
+>;
+unsafe extern "C" {
+    pub fn JS_SetPromiseHook(
+        rt: *mut JSRuntime,
+        promise_hook: JSPromiseHook,
+        opaque: *mut ::std::os::raw::c_void,
+    );
 }
 pub type JSHostPromiseRejectionTracker = ::std::option::Option<
     unsafe extern "C" fn(
