@@ -1260,6 +1260,8 @@ static JSValue js_promise_resolve(JSContext *ctx, JSValueConst this_val,
                                   int argc, JSValueConst *argv, int magic);
 static JSValue js_promise_then(JSContext *ctx, JSValueConst this_val,
                                int argc, JSValueConst *argv);
+static JSValue js_promise_resolve_thenable_job(JSContext *ctx,
+                                               int argc, JSValueConst *argv);
 static bool js_string_eq(JSString *p1, JSString *p2);
 static int js_string_compare(JSString *p1, JSString *p2);
 static int JS_SetPropertyValue(JSContext *ctx, JSValueConst this_obj,
@@ -6479,10 +6481,10 @@ void JS_DumpMemoryUsage(FILE *fp, const JSMemoryUsage *s, JSRuntime *rt)
             if (obj_classes[0])
                 fprintf(fp, "  %5d  %2.0d %s\n", obj_classes[0], 0, "none");
             for (class_id = 1; class_id < JS_CLASS_INIT_COUNT; class_id++) {
-                if (obj_classes[class_id]) {
+                if (obj_classes[class_id] && class_id < rt->class_count) {
                     char buf[ATOM_GET_STR_BUF_SIZE];
                     fprintf(fp, "  %5d  %2.0d %s\n", obj_classes[class_id], class_id,
-                            JS_AtomGetStrRT(rt, buf, sizeof(buf), js_std_class_def[class_id - 1].class_name));
+                            JS_AtomGetStrRT(rt, buf, sizeof(buf), rt->class_array[class_id].class_name));
                 }
             }
             if (obj_classes[JS_CLASS_INIT_COUNT])
@@ -11724,7 +11726,12 @@ static JSBigInt *js_bigint_from_string(JSContext *ctx,
 }
 
 /* 2 <= base <= 36 */
-static char const digits[36] = "0123456789abcdefghijklmnopqrstuvwxyz";
+static char const digits[36] = {
+    '0','1','2','3','4','5','6','7','8','9',
+    'a','b','c','d','e','f','g','h','i','j',
+    'k','l','m','n','o','p','q','r','s','t',
+    'u','v','w','x','y','z'
+};
 
 /* special version going backwards */
 /* XXX: use dtoa.c */
@@ -50216,6 +50223,9 @@ static JSValue promise_rejection_tracker_job(JSContext *ctx, int argc,
     JSRuntime *rt;
     JSPromiseData *s;
     JSValueConst promise;
+    struct list_head *el, *el1;
+    JSJobEntry *job;
+    bool has_other_promise_jobs;
 
     assert(argc == 1);
 
@@ -50227,6 +50237,22 @@ static JSValue promise_rejection_tracker_job(JSContext *ctx, int argc,
         return JS_UNDEFINED; /* should never happen */
 
     promise_trace(ctx, "promise_rejection_tracker_job\n");
+
+    // Push the rejection tracker jobs to the end of the queue if there are other jobs.
+    // This allows us to handle rejections that get added later and thus would handle the
+    // rejection _after_ we check for it.
+    has_other_promise_jobs = false;
+    list_for_each_safe(el, el1, &rt->job_list) {
+        job = list_entry(el, JSJobEntry, link);
+        if (job->job_func == promise_reaction_job || job->job_func == js_promise_resolve_thenable_job) {
+            has_other_promise_jobs = true;
+            break;
+        }
+    }
+    if (has_other_promise_jobs) {
+        JS_EnqueueJob(ctx, promise_rejection_tracker_job, 1, &promise);
+        return JS_UNDEFINED;
+    }
 
     // Check again in case the hook was removed.
     if (rt->host_promise_rejection_tracker)
