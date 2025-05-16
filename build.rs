@@ -86,7 +86,13 @@ fn main() {
     cc::Build::new()
         .files(files.iter().map(|f| code_dir.join(f)))
         .define("_GNU_SOURCE", None)
+        //.use_default_flags(false) // Disable default flags to customize cleanly if needed
         .define("WIN32_LEAN_AND_MEAN", None)
+        .define("_CRT_SECURE_NO_WARNINGS", None)
+        .define("_MSC_VER", None)
+        .define("_ALLOW_MSC_VER_PACKING", None) // Just example if needed
+        .flag_if_supported("/Zc:__cplusplus") // if C++ code involved
+        .flag_if_supported("/utf-8")
         .define(
             "CONFIG_VERSION",
             format!("\"{}\"", quickjs_version.trim()).as_str(),
