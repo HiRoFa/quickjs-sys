@@ -94,6 +94,7 @@ fn main() {
         .blocklist_item("FP_ZERO")
         .blocklist_item("FP_SUBNORMAL")
         .clang_arg(format!("-I{}", embed_path.join("quickjs").display()))
+        .layout_tests(false)
         .generate()
         .expect("Failed to generate bindings");
 
