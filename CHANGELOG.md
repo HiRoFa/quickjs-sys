@@ -1,5 +1,9 @@
 # hirofa-quickjs_sys - Changelog
 
+## 0.10.3
+
+* removed js_isbigfloat/decimal
+
 ## 0.10.2
 
 * moved bindgen to build.rs so windows works again

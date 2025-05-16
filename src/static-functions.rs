@@ -1,4 +1,3 @@
-
 unsafe extern "C" {
     fn JS_ValueGetTag_real(v: JSValue) -> i32;
     #[cfg(feature = "bellard")]
@@ -20,8 +19,6 @@ unsafe extern "C" {
     fn JS_VALUE_GET_NORM_TAG_real(v: JSValue) -> ::std::os::raw::c_int;
     fn JS_IsNumber_real(v: JSValue) -> bool;
     fn JS_IsBigInt_real(ctx: *mut JSContext, v: JSValue) -> bool;
-    fn JS_IsBigFloat_real(v: JSValue) -> bool;
-    fn JS_IsBigDecimal_real(v: JSValue) -> bool;
     fn JS_IsBool_real(v: JSValue) -> bool;
     fn JS_IsNull_real(v: JSValue) -> bool;
     fn JS_IsUndefined_real(v: JSValue) -> bool;
@@ -33,7 +30,7 @@ unsafe extern "C" {
     fn JS_ToUint32_real(ctx: *mut JSContext, pres: u32, val: JSValue) -> u32;
     #[cfg(feature = "bellard")]
     fn JS_SetProperty_real(ctx: *mut JSContext, this_obj: JSValue, prop: JSAtom, val: JSValue) -> ::std::os::raw::c_int;
-    fn JS_NewCFunction_real(ctx: *mut JSContext, func: *mut JSCFunction, name: *const ::std::os::raw::c_char,length: ::std::os::raw::c_int) -> JSValue;
+    fn JS_NewCFunction_real(ctx: *mut JSContext, func: *mut JSCFunction, name: *const ::std::os::raw::c_char, length: ::std::os::raw::c_int) -> JSValue;
     fn JS_NewCFunctionMagic_real(ctx: *mut JSContext, func: *mut JSCFunctionMagic, name: *const ::std::os::raw::c_char, length: ::std::os::raw::c_int, cproto: JSCFunctionEnum, magic: ::std::os::raw::c_int) -> JSValue;
 }
 
@@ -102,12 +99,10 @@ pub unsafe fn JS_VALUE_IS_NAN(v: JSValue) -> bool {
     unsafe {
         JS_VALUE_IS_NAN_real(v)
     }
-
 }
 
 /// get a f64 value from a JSValue
 pub unsafe fn JS_VALUE_GET_FLOAT64(v: JSValue) -> f64 {
-
     unsafe {
         JS_VALUE_GET_FLOAT64_real(v)
     }
@@ -130,21 +125,7 @@ pub unsafe fn JS_IsNumber(v: JSValue) -> bool {
 /// check if a JSValue is a BigInt
 pub unsafe fn JS_IsBigInt(ctx: *mut JSContext, v: JSValue) -> bool {
     unsafe {
-        JS_IsBigInt_real(ctx,v)
-    }
-}
-
-/// check if a JSValue is a BigFloat
-pub unsafe fn JS_IsBigFloat(v: JSValue) -> bool {
-    unsafe {
-        JS_IsBigFloat_real(v)
-    }
-}
-
-/// check if a JSValue is a BigDecimal
-pub unsafe fn JS_IsBigDecimal(v: JSValue) -> bool {
-    unsafe {
-        JS_IsBigDecimal_real(v)
+        JS_IsBigInt_real(ctx, v)
     }
 }
 
@@ -170,7 +151,7 @@ pub unsafe fn JS_IsUndefined(v: JSValue) -> bool {
 }
 
 /// check if a JSValue is an Exception
-pub unsafe fn JS_IsException(v: JSValue) -> bool{
+pub unsafe fn JS_IsException(v: JSValue) -> bool {
     unsafe {
         JS_IsException_real(v)
     }
@@ -220,7 +201,7 @@ pub unsafe fn JS_SetProperty(ctx: *mut JSContext, this_obj: JSValue, prop: JSAto
 }
 
 /// create a new Function based on a JSCFunction
-pub unsafe fn JS_NewCFunction(ctx: *mut JSContext, func: *mut JSCFunction, name: *const ::std::os::raw::c_char,length: ::std::os::raw::c_int) -> JSValue {
+pub unsafe fn JS_NewCFunction(ctx: *mut JSContext, func: *mut JSCFunction, name: *const ::std::os::raw::c_char, length: ::std::os::raw::c_int) -> JSValue {
     unsafe {
         JS_NewCFunction_real(ctx, func, name, length)
     }
