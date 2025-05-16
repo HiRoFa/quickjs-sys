@@ -30,33 +30,47 @@ fn main() {
     }
 
     // Copy quickjs source directory
-    copy_dir::copy_dir(embed_path.join("quickjs"), &code_dir)
-        .expect("Failed to copy quickjs dir");
+    copy_dir::copy_dir(embed_path.join("quickjs"), &code_dir).expect("Failed to copy quickjs dir");
 
-    fs::copy(embed_path.join("static-functions.c"), code_dir.join("static-functions.c"))
-        .expect("Failed to copy static-functions.c");
+    fs::copy(
+        embed_path.join("static-functions.c"),
+        code_dir.join("static-functions.c"),
+    )
+    .expect("Failed to copy static-functions.c");
 
     // Copy wrapper.h
     let wrapper_out = out_path.join("wrapper.h");
-    fs::copy(embed_path.join("wrapper.h"), &wrapper_out)
-        .expect("Failed to copy wrapper.h");
+    fs::copy(embed_path.join("wrapper.h"), &wrapper_out).expect("Failed to copy wrapper.h");
 
-    let quickjs_version = fs::read_to_string(code_dir.join("VERSION"))
-        .expect("Missing VERSION file");
+    let quickjs_version =
+        fs::read_to_string(code_dir.join("VERSION")).expect("Missing VERSION file");
 
     #[cfg(feature = "bellard")]
     let files = [
-        "cutils.c", "dtoa.c", "libregexp.c", "libunicode.c", "quickjs.c", "static-functions.c",
+        "cutils.c",
+        "dtoa.c",
+        "libregexp.c",
+        "libunicode.c",
+        "quickjs.c",
+        "static-functions.c",
     ];
     #[cfg(feature = "quickjs-ng")]
     let files = [
-        "cutils.c", "xsum.c", "libregexp.c", "libunicode.c", "quickjs.c", "static-functions.c",
+        "cutils.c",
+        "xsum.c",
+        "libregexp.c",
+        "libunicode.c",
+        "quickjs.c",
+        "static-functions.c",
     ];
 
     cc::Build::new()
         .files(files.iter().map(|f| code_dir.join(f)))
         .define("_GNU_SOURCE", None)
-        .define("CONFIG_VERSION", format!("\"{}\"", quickjs_version.trim()).as_str())
+        .define(
+            "CONFIG_VERSION",
+            format!("\"{}\"", quickjs_version.trim()).as_str(),
+        )
         .define("CONFIG_BIGNUM", None)
         .flag_if_supported("-Wno-array-bounds")
         .flag_if_supported("-Wno-sign-compare")
