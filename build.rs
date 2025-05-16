@@ -36,7 +36,7 @@ fn main() {
         embed_path.join("static-functions.c"),
         code_dir.join("static-functions.c"),
     )
-        .expect("Failed to copy static-functions.c");
+    .expect("Failed to copy static-functions.c");
 
     // Copy wrapper.h
     let wrapper_out = out_path.join("wrapper.h");
