@@ -83,8 +83,8 @@ fn main() {
 
     // -- END MSVC SUPPORT --
 
-    let mut build = cc::Build::new()
-        .files(files.iter().map(|f| code_dir.join(f)))
+    let mut build = cc::Build::new();
+    build.files(files.iter().map(|f| code_dir.join(f)))
         .define("_GNU_SOURCE", None)
         .define("WIN32_LEAN_AND_MEAN", None)
 
@@ -101,16 +101,16 @@ fn main() {
         .flag_if_supported("-Wunused")
         .flag_if_supported("-Wwrite-strings")
         .flag_if_supported("-funsigned-char")
-        .flag_if_supported("-Wno-cast-function-type")
-        .opt_level(2);
+        .flag_if_supported("-Wno-cast-function-type");
+
 
     #[cfg(feature = "bellard")]
     if target_env == "msvc" {
-        build = build.define("_CRT_SECURE_NO_WARNINGS", None)
-            .flag_if_supported("/utf-8")
+        build.define("_CRT_SECURE_NO_WARNINGS", None)
+            .flag_if_supported("/utf-8");
     }
 
-    build.compile(LIB_NAME);
+    build.opt_level(2).compile(LIB_NAME);
 
     let wrapper_h = embed_path.join("wrapper.h");
 
