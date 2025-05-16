@@ -36,7 +36,7 @@ fn main() {
         embed_path.join("static-functions.c"),
         code_dir.join("static-functions.c"),
     )
-        .expect("Failed to copy static-functions.c");
+    .expect("Failed to copy static-functions.c");
 
     // Copy wrapper.h
     let wrapper_out = out_path.join("wrapper.h");
@@ -84,10 +84,10 @@ fn main() {
     // -- END MSVC SUPPORT --
 
     let mut build = cc::Build::new();
-    build.files(files.iter().map(|f| code_dir.join(f)))
+    build
+        .files(files.iter().map(|f| code_dir.join(f)))
         .define("_GNU_SOURCE", None)
         .define("WIN32_LEAN_AND_MEAN", None)
-
         .define(
             "CONFIG_VERSION",
             format!("\"{}\"", quickjs_version.trim()).as_str(),
@@ -103,10 +103,10 @@ fn main() {
         .flag_if_supported("-funsigned-char")
         .flag_if_supported("-Wno-cast-function-type");
 
-
     #[cfg(feature = "bellard")]
     if target_env == "msvc" {
-        build.define("_CRT_SECURE_NO_WARNINGS", None)
+        build
+            .define("_CRT_SECURE_NO_WARNINGS", None)
             .flag_if_supported("/utf-8");
     }
 
