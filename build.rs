@@ -36,7 +36,7 @@ fn main() {
         embed_path.join("static-functions.c"),
         code_dir.join("static-functions.c"),
     )
-    .expect("Failed to copy static-functions.c");
+        .expect("Failed to copy static-functions.c");
 
     // Copy wrapper.h
     let wrapper_out = out_path.join("wrapper.h");
@@ -64,9 +64,29 @@ fn main() {
         "static-functions.c",
     ];
 
+    // -- BEGIN MSVC SUPPORT --
+
+    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+    let target_env = env::var("CARGO_CFG_TARGET_ENV").unwrap_or_default();
+
+    if target_os == "windows" {
+        if target_env == "msvc" {
+            unsafe {
+                env::set_var("CFLAGS", "/std:c11 /experimental:c11atomics");
+            }
+        } else {
+            unsafe {
+                env::set_var("CFLAGS", "-std=c11");
+            }
+        }
+    }
+
+    // -- END MSVC SUPPORT --
+
     cc::Build::new()
         .files(files.iter().map(|f| code_dir.join(f)))
         .define("_GNU_SOURCE", None)
+        .define("WIN32_LEAN_AND_MEAN", None)
         .define(
             "CONFIG_VERSION",
             format!("\"{}\"", quickjs_version.trim()).as_str(),
