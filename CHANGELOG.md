@@ -1,5 +1,9 @@
 # hirofa-quickjs_sys - Changelog
 
+## 0.10.2
+
+* moved bindgen to build.rs so windows works again
+
 ## 0.10.1
 
 * updated quickjs-ng to 0.10.1
@@ -50,6 +54,7 @@
 ## 0.1.0
 
 Initial code
+
 * updated bellard to 2023 release, this works
 * added quickjs-ng, gives warnings
 * added openwebf, does not work yet
