@@ -19,5 +19,6 @@ bellard = []
 quickjs-ng = []
 
 [build-dependencies]
-cc = { version = "1.0.66"}
-copy_dir = { version = "0.1.2"}
+cc = { version = "1.2"}
+copy_dir = { version = "0.1"}
+bindgen = "0.71"
