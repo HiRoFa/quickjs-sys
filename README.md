@@ -4,7 +4,9 @@ Low level rust bindings for quickjs, used by [quickjs_runtime](https://github.co
 
 uses either
 * The original by Fabrice Bellard. see: https://bellard.org/quickjs/
+  * works on linux, mac and windows(mingw)
 * quickjs-ng, Friendly QuickJS fork focused on reigniting the project. (```default-features=false, features=["quickjs-ng"]```) see: https://github.com/quickjs-ng/quickjs
+  * works on linux, mac, windows(mingw) and windows(msvc)
 
 # getting started
 
