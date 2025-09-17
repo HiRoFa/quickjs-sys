@@ -1,5 +1,9 @@
 # hirofa-quickjs_sys - Changelog
 
+## 0.11.0
+
+* update bellard to 2025-09-13
+
 ## 0.10.3
 
 * removed js_isbigfloat/decimal
