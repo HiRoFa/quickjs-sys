@@ -710,6 +710,15 @@ function math_min(n)
     return n * 1000;
 }
 
+function object_null(n)
+{
+    var j;
+    for(j = 0; j < n; j++) {
+        global_res = {__proto__: null};
+    }
+    return n;
+}
+
 function regexp_ascii(n)
 {
     var i, j, r, s;
@@ -786,6 +795,39 @@ function string_build4(n)
         global_res = r;
     }
     return n * 100;
+}
+
+function string_slice1(n)
+{
+    var i, j, s;
+    s = "x".repeat(1<<16);
+    for (i = 0; i < n; i++) {
+        for (j = 0; j < 1000; j++)
+            s.slice(-1); // too short for JSStringSlice
+    }
+    return n * 1000;
+}
+
+function string_slice2(n)
+{
+    var i, j, s;
+    s = "x".repeat(1<<16);
+    for (i = 0; i < n; i++) {
+        for (j = 0; j < 1000; j++)
+            s.slice(-1024);
+    }
+    return n * 1000;
+}
+
+function string_slice3(n)
+{
+    var i, j, s;
+    s = "x".repeat(1<<16);
+    for (i = 0; i < n; i++) {
+        for (j = 0; j < 1000; j++)
+            s.slice(1);
+    }
+    return n * 1000;
 }
 
 /* sort bench */
@@ -1098,12 +1140,16 @@ function main(argc, argv, g)
         array_for_in,
         array_for_of,
         math_min,
+        object_null,
         regexp_ascii,
         regexp_utf16,
         string_build1,
         string_build2,
         //string_build3,
         //string_build4,
+        string_slice1,
+        string_slice2,
+        string_slice3,
         sort_bench,
         int_to_string,
         int_toString,

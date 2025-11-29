@@ -198,7 +198,8 @@ the error code.
 
 Return `[array, err]` where `array` is an array of strings
 containing the filenames of the directory `path`. `err` is
-the error code.
+the error code. `array` contains at least `"."` and `".."`
+if successful.
 
 ### `setReadHandler(fd, func)`
 
@@ -253,6 +254,8 @@ object containing optional parameters:
   process.
 - `uid` - Integer. If present, the process uid with `setuid`.
 - `gid` - Integer. If present, the process gid with `setgid`.
+- `groups` - Array of integer. If present, the supplementary
+   group IDs with `setgroup`.
 
 ### `waitpid(pid, options)`
 

@@ -53,8 +53,8 @@ bool JS_IsNumber_real(JSValueConst v) {
     return JS_IsNumber(v);
 }
 
-bool JS_IsBigInt_real(JSContext *ctx, JSValueConst v) {
-    return JS_IsBigInt(ctx, v);
+bool JS_IsBigInt_real(JSValueConst v) {
+    return JS_IsBigInt(v);
 }
 
 bool JS_IsBool_real(JSValueConst v) {

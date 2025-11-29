@@ -104,6 +104,17 @@ function test_popen()
     std.writeFile(fname, content);
     assert(std.loadFile(fname), content);
 
+    // popen pipe is unidirectional so mode should
+    // be either read or write but not both
+    let caught = false;
+    try {
+        std.popen(cmd, "rw");
+    } catch (e) {
+        assert(/invalid file mode/.test(e.message));
+        caught = true;
+    }
+    assert(caught);
+
     /* execute shell command */
     f = std.popen(cmd + " " + fname, "r");
     str = f.readAsString();
@@ -158,7 +169,10 @@ function test_os()
 
     [files, err] = os.readdir(fdir);
     assert(err, 0);
-    assert(files.indexOf(fname) >= 0);
+    assert(files.length >= 3);
+    assert(files.includes(fname));
+    assert(files.includes("."));
+    assert(files.includes(".."));
 
     fdate = 10000;
 

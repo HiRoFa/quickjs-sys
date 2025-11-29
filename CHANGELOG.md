@@ -1,5 +1,9 @@
 # hirofa-quickjs_sys - Changelog
 
+## 0.12.0
+
+* update quickjs-ng to 0.11.0
+
 ## 0.11.0
 
 * update bellard to 2025-09-13

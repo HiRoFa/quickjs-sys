@@ -57,7 +57,7 @@ fn main() {
     #[cfg(feature = "quickjs-ng")]
     let files = [
         "cutils.c",
-        "xsum.c",
+        "dtoa.c",
         "libregexp.c",
         "libunicode.c",
         "quickjs.c",

@@ -2,6 +2,8 @@ import {loadFile, writeFile} from "qjs:std"
 
 const cutils_c = loadFile("cutils.c")
 const cutils_h = loadFile("cutils.h")
+const dtoa_c = loadFile("dtoa.c")
+const dtoa_h = loadFile("dtoa.h")
 const libregexp_c = loadFile("libregexp.c")
 const libregexp_h = loadFile("libregexp.h")
 const libregexp_opcode_h = loadFile("libregexp-opcode.h")
@@ -16,8 +18,6 @@ const quickjs_h = loadFile("quickjs.h")
 const quickjs_libc_c = loadFile("quickjs-libc.c")
 const quickjs_libc_h = loadFile("quickjs-libc.h")
 const quickjs_opcode_h = loadFile("quickjs-opcode.h")
-const xsum_c = loadFile("xsum.c")
-const xsum_h = loadFile("xsum.h")
 const gen_builtin_array_fromasync_h = loadFile("builtin-array-fromasync.h")
 
 let source = "#if defined(QJS_BUILD_LIBC) && defined(__linux__) && !defined(_GNU_SOURCE)\n"
@@ -25,17 +25,17 @@ let source = "#if defined(QJS_BUILD_LIBC) && defined(__linux__) && !defined(_GNU
            + "#endif\n"
            + quickjs_c_atomics_h
            + cutils_h
+           + dtoa_h
            + list_h
            + libunicode_h // exports lre_is_id_start, used by libregexp.h
            + libregexp_h
            + libunicode_table_h
-           + xsum_h
            + quickjs_h
            + quickjs_c
            + cutils_c
+           + dtoa_c
            + libregexp_c
            + libunicode_c
-           + xsum_c
            + "#ifdef QJS_BUILD_LIBC\n"
            + quickjs_libc_h
            + quickjs_libc_c

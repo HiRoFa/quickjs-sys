@@ -227,10 +227,10 @@ endmacro()
 
 set(qjs_sources
     cutils.c
+    dtoa.c
     libregexp.c
     libunicode.c
     quickjs.c
-    xsum.c
 )
 
 if(QJS_BUILD_LIBC)
