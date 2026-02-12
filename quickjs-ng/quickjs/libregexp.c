@@ -31,6 +31,10 @@
 #include "cutils.h"
 #include "libregexp.h"
 
+#if defined(__sun)
+#include <alloca.h>
+#endif
+
 /*
   TODO:
 
@@ -116,7 +120,7 @@ static inline int lre_is_digit(int c) {
 /* insert 'len' bytes at position 'pos'. Return < 0 if error. */
 static int dbuf_insert(DynBuf *s, int pos, int len)
 {
-    if (dbuf_realloc(s, s->size + len))
+    if (dbuf_claim(s, len))
         return -1;
     memmove(s->buf + pos + len, s->buf + pos, s->size - pos);
     s->size += len;
@@ -389,6 +393,13 @@ static int JS_PRINTF_FORMAT_ATTR(2, 3) re_parse_error(REParseState *s, const cha
 static int re_parse_out_of_memory(REParseState *s)
 {
     return re_parse_error(s, "out of memory");
+}
+
+static int lre_check_size(REParseState *s)
+{
+    if (s->byte_code.size < 64*1024*1024)
+        return 0;
+    return re_parse_out_of_memory(s);
 }
 
 /* If allow_overflow is false, return -1 in case of
@@ -1176,6 +1187,8 @@ static int re_parse_term(REParseState *s, bool is_backward_dir)
     bool greedy, add_zero_advance_check, is_neg, is_backward_lookahead;
     CharRange cr_s, *cr = &cr_s;
 
+    if (lre_check_size(s))
+        return -1;
     last_atom_start = -1;
     last_capture_count = 0;
     p = s->buf_ptr;
@@ -1667,6 +1680,8 @@ static int re_parse_alternative(REParseState *s, bool is_backward_dir)
     int ret;
     size_t start, term_start, end, term_size;
 
+    if (lre_check_size(s))
+        return -1;
     start = s->byte_code.size;
     for(;;) {
         p = s->buf_ptr;
@@ -1683,7 +1698,7 @@ static int re_parse_alternative(REParseState *s, bool is_backward_dir)
                speed is not really critical here) */
             end = s->byte_code.size;
             term_size = end - term_start;
-            if (dbuf_realloc(&s->byte_code, end + term_size))
+            if (dbuf_claim(&s->byte_code, term_size))
                 return -1;
             memmove(s->byte_code.buf + start + term_size,
                     s->byte_code.buf + start,
@@ -1701,7 +1716,8 @@ static int re_parse_disjunction(REParseState *s, bool is_backward_dir)
 
     if (lre_check_stack_overflow(s->opaque, 0))
         return re_parse_error(s, "stack overflow");
-
+    if (lre_check_size(s))
+        return -1;
     start = s->byte_code.size;
     if (re_parse_alternative(s, is_backward_dir))
         return -1;

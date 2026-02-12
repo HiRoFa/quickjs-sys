@@ -171,6 +171,7 @@ pub const M_2_SQRTPI: f64 = 1.1283791670955126;
 pub const M_SQRT2: f64 = 1.4142135623730951;
 pub const M_SQRT1_2: f64 = 0.7071067811865476;
 pub const QUICKJS_NG: u32 = 1;
+pub const QUICKJS_NG_CC_GNULIKE: u32 = 1;
 pub const JS_PROP_CONFIGURABLE: u32 = 1;
 pub const JS_PROP_WRITABLE: u32 = 2;
 pub const JS_PROP_ENUMERABLE: u32 = 4;
@@ -254,7 +255,7 @@ pub const JS_DEF_PROP_UNDEFINED: u32 = 7;
 pub const JS_DEF_OBJECT: u32 = 8;
 pub const JS_DEF_ALIAS: u32 = 9;
 pub const QJS_VERSION_MAJOR: u32 = 0;
-pub const QJS_VERSION_MINOR: u32 = 11;
+pub const QJS_VERSION_MINOR: u32 = 12;
 pub const QJS_VERSION_PATCH: u32 = 0;
 pub const QJS_VERSION_SUFFIX: &[u8; 1] = b"\0";
 pub type __gnuc_va_list = __builtin_va_list;
@@ -2771,6 +2772,7 @@ pub const JS_TAG_FIRST: _bindgen_ty_2 = -9;
 pub const JS_TAG_BIG_INT: _bindgen_ty_2 = -9;
 pub const JS_TAG_SYMBOL: _bindgen_ty_2 = -8;
 pub const JS_TAG_STRING: _bindgen_ty_2 = -7;
+pub const JS_TAG_STRING_ROPE: _bindgen_ty_2 = -6;
 pub const JS_TAG_MODULE: _bindgen_ty_2 = -3;
 pub const JS_TAG_FUNCTION_BYTECODE: _bindgen_ty_2 = -2;
 pub const JS_TAG_OBJECT: _bindgen_ty_2 = -1;
@@ -2841,6 +2843,16 @@ pub type JSCFunctionData = ::std::option::Option<
         argv: *mut JSValue,
         magic: ::std::os::raw::c_int,
         func_data: *mut JSValue,
+    ) -> JSValue,
+>;
+pub type JSCClosure = ::std::option::Option<
+    unsafe extern "C" fn(
+        ctx: *mut JSContext,
+        this_val: JSValue,
+        argc: ::std::os::raw::c_int,
+        argv: *mut JSValue,
+        magic: ::std::os::raw::c_int,
+        opaque: *mut ::std::os::raw::c_void,
     ) -> JSValue,
 >;
 #[repr(C)]
@@ -3230,6 +3242,9 @@ unsafe extern "C" {
     pub fn JS_DupAtom(ctx: *mut JSContext, v: JSAtom) -> JSAtom;
 }
 unsafe extern "C" {
+    pub fn JS_DupAtomRT(rt: *mut JSRuntime, v: JSAtom) -> JSAtom;
+}
+unsafe extern "C" {
     pub fn JS_FreeAtom(ctx: *mut JSContext, v: JSAtom);
 }
 unsafe extern "C" {
@@ -3443,6 +3458,9 @@ unsafe extern "C" {
     pub fn JS_IsRegisteredClass(rt: *mut JSRuntime, class_id: JSClassID) -> bool;
 }
 unsafe extern "C" {
+    pub fn JS_GetClassName(rt: *mut JSRuntime, class_id: JSClassID) -> JSAtom;
+}
+unsafe extern "C" {
     pub fn JS_NewNumber(ctx: *mut JSContext, d: f64) -> JSValue;
 }
 unsafe extern "C" {
@@ -3630,7 +3648,7 @@ unsafe extern "C" {
     ) -> JSValue;
 }
 unsafe extern "C" {
-    pub fn JS_NewTwoByteString(ctx: *mut JSContext, buf: *const u16, len: usize) -> JSValue;
+    pub fn JS_NewStringUTF16(ctx: *mut JSContext, buf: *const u16, len: usize) -> JSValue;
 }
 unsafe extern "C" {
     pub fn JS_NewAtomString(ctx: *mut JSContext, str_: *const ::std::os::raw::c_char) -> JSValue;
@@ -3650,7 +3668,20 @@ unsafe extern "C" {
     ) -> *const ::std::os::raw::c_char;
 }
 unsafe extern "C" {
+    pub fn JS_ToCStringLenUTF16(ctx: *mut JSContext, plen: *mut usize, val1: JSValue)
+        -> *const u16;
+}
+unsafe extern "C" {
     pub fn JS_FreeCString(ctx: *mut JSContext, ptr: *const ::std::os::raw::c_char);
+}
+unsafe extern "C" {
+    pub fn JS_FreeCStringRT(rt: *mut JSRuntime, ptr: *const ::std::os::raw::c_char);
+}
+unsafe extern "C" {
+    pub fn JS_FreeCStringUTF16(ctx: *mut JSContext, ptr: *const u16);
+}
+unsafe extern "C" {
+    pub fn JS_FreeCStringRT_UTF16(rt: *mut JSRuntime, ptr: *const u16);
 }
 unsafe extern "C" {
     pub fn JS_NewObjectProtoClass(
@@ -3741,6 +3772,9 @@ unsafe extern "C" {
 }
 unsafe extern "C" {
     pub fn JS_GetProxyHandler(ctx: *mut JSContext, proxy: JSValue) -> JSValue;
+}
+unsafe extern "C" {
+    pub fn JS_NewProxy(ctx: *mut JSContext, target: JSValue, handler: JSValue) -> JSValue;
 }
 unsafe extern "C" {
     pub fn JS_NewDate(ctx: *mut JSContext, epoch_ms: f64) -> JSValue;
@@ -4141,10 +4175,11 @@ unsafe extern "C" {
         sf: *const JSSharedArrayBufferFunctions,
     );
 }
+pub const JSPromiseStateEnum_JS_PROMISE_NOT_A_PROMISE: JSPromiseStateEnum = -1;
 pub const JSPromiseStateEnum_JS_PROMISE_PENDING: JSPromiseStateEnum = 0;
 pub const JSPromiseStateEnum_JS_PROMISE_FULFILLED: JSPromiseStateEnum = 1;
 pub const JSPromiseStateEnum_JS_PROMISE_REJECTED: JSPromiseStateEnum = 2;
-pub type JSPromiseStateEnum = ::std::os::raw::c_uint;
+pub type JSPromiseStateEnum = ::std::os::raw::c_int;
 unsafe extern "C" {
     pub fn JS_NewPromiseCapability(ctx: *mut JSContext, resolving_funcs: *mut JSValue) -> JSValue;
 }
@@ -4240,11 +4275,35 @@ pub type JSModuleLoaderFunc = ::std::option::Option<
         opaque: *mut ::std::os::raw::c_void,
     ) -> *mut JSModuleDef,
 >;
+pub type JSModuleLoaderFunc2 = ::std::option::Option<
+    unsafe extern "C" fn(
+        ctx: *mut JSContext,
+        module_name: *const ::std::os::raw::c_char,
+        opaque: *mut ::std::os::raw::c_void,
+        attributes: JSValue,
+    ) -> *mut JSModuleDef,
+>;
+pub type JSModuleCheckSupportedImportAttributes = ::std::option::Option<
+    unsafe extern "C" fn(
+        ctx: *mut JSContext,
+        opaque: *mut ::std::os::raw::c_void,
+        attributes: JSValue,
+    ) -> ::std::os::raw::c_int,
+>;
 unsafe extern "C" {
     pub fn JS_SetModuleLoaderFunc(
         rt: *mut JSRuntime,
         module_normalize: JSModuleNormalizeFunc,
         module_loader: JSModuleLoaderFunc,
+        opaque: *mut ::std::os::raw::c_void,
+    );
+}
+unsafe extern "C" {
+    pub fn JS_SetModuleLoaderFunc2(
+        rt: *mut JSRuntime,
+        module_normalize: JSModuleNormalizeFunc,
+        module_loader: JSModuleLoaderFunc2,
+        module_check_attrs: JSModuleCheckSupportedImportAttributes,
         opaque: *mut ::std::os::raw::c_void,
     );
 }
@@ -4256,6 +4315,16 @@ unsafe extern "C" {
 }
 unsafe extern "C" {
     pub fn JS_GetModuleNamespace(ctx: *mut JSContext, m: *mut JSModuleDef) -> JSValue;
+}
+unsafe extern "C" {
+    pub fn JS_SetModulePrivateValue(
+        ctx: *mut JSContext,
+        m: *mut JSModuleDef,
+        val: JSValue,
+    ) -> ::std::os::raw::c_int;
+}
+unsafe extern "C" {
+    pub fn JS_GetModulePrivateValue(ctx: *mut JSContext, m: *mut JSModuleDef) -> JSValue;
 }
 pub type JSJobFunc = ::std::option::Option<
     unsafe extern "C" fn(
@@ -4488,6 +4557,19 @@ unsafe extern "C" {
         magic: ::std::os::raw::c_int,
         data_len: ::std::os::raw::c_int,
         data: *mut JSValue,
+    ) -> JSValue;
+}
+pub type JSCClosureFinalizerFunc =
+    ::std::option::Option<unsafe extern "C" fn(arg1: *mut ::std::os::raw::c_void)>;
+unsafe extern "C" {
+    pub fn JS_NewCClosure(
+        ctx: *mut JSContext,
+        func: JSCClosure,
+        name: *const ::std::os::raw::c_char,
+        opaque_finalize: JSCClosureFinalizerFunc,
+        length: ::std::os::raw::c_int,
+        magic: ::std::os::raw::c_int,
+        opaque: *mut ::std::os::raw::c_void,
     ) -> JSValue;
 }
 unsafe extern "C" {

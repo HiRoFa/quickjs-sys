@@ -38,6 +38,7 @@
 #else
 #include <dirent.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #endif
 
 #include "cutils.h"
@@ -418,6 +419,11 @@ static void consider_test_file(const char *path, const char *name, int is_dir)
     while (pathlen > 0 && ispathsep(path[pathlen-1]))
         pathlen--;
     snprintf(s, sizeof(s), "%.*s/%s", (int)pathlen, path, name);
+#if !defined(_WIN32) && !defined(DT_DIR)
+    struct stat st;
+    if (is_dir < 0)
+        is_dir = !stat(s, &st) && S_ISDIR(st.st_mode);
+#endif
     if (is_dir)
         find_test_files(s);
     else
@@ -448,7 +454,11 @@ static void find_test_files(const char *path)
     n = scandir(path, &ds, NULL, alphasort);
     for (i = 0; i < n; i++) {
         d = ds[i];
+#ifdef DT_DIR
         consider_test_file(path, d->d_name, d->d_type == DT_DIR);
+#else
+        consider_test_file(path, d->d_name, -1);
+#endif
         free(d);
     }
     free(ds);
@@ -498,6 +508,15 @@ static JSValue js_print_262(JSContext *ctx, JSValueConst this_val,
         if (verbose > 1)
             printf("%s%s", &" "[i < 1], s);
         JS_FreeCString(ctx, s);
+        if (verbose > 2 && JS_IsError(v)) {
+            JSValue stack = JS_GetPropertyStr(ctx, v, "stack");
+            s = JS_ToCString(ctx, stack);
+            JS_FreeValue(ctx, stack);
+            if (s) {
+                printf("\n%s", s);
+                JS_FreeCString(ctx, s);
+            }
+        }
     }
     if (outfile)
         fputc('\n', outfile);
@@ -942,14 +961,24 @@ static char *load_file(const char *filename, size_t *lenp)
     return buf;
 }
 
+static int json_module_init(JSContext *ctx, JSModuleDef *m)
+{
+    JSValue val;
+    val = JS_GetModulePrivateValue(ctx, m);
+    JS_SetModuleExport(ctx, m, "default", val);
+    return 0;
+}
+
 static JSModuleDef *js_module_loader_test(JSContext *ctx,
-                                          const char *module_name, void *opaque)
+                                          const char *module_name, void *opaque,
+                                          JSValueConst attributes)
 {
     size_t buf_len;
     uint8_t *buf;
     JSModuleDef *m;
     JSValue func_val;
     char *filename, *slash, path[1024];
+    int res;
 
     // interpret import("bar.js") from path/to/foo.js as
     // import("path/to/bar.js") but leave import("./bar.js") untouched
@@ -963,11 +992,33 @@ static JSModuleDef *js_module_loader_test(JSContext *ctx,
         }
     }
 
+    /* check for JSON module */
+    res = js_module_test_json(ctx, attributes);
+    if (res < 0)
+        return NULL;
+
     buf = js_load_file(ctx, &buf_len, module_name);
     if (!buf) {
         JS_ThrowReferenceError(ctx, "could not load module filename '%s'",
                                module_name);
         return NULL;
+    }
+
+    if (res > 0 || js__has_suffix(module_name, ".json")) {
+        /* compile as JSON */
+        JSValue val;
+        val = JS_ParseJSON(ctx, (char *)buf, buf_len, module_name);
+        js_free(ctx, buf);
+        if (JS_IsException(val))
+            return NULL;
+        m = JS_NewCModule(ctx, module_name, json_module_init);
+        if (!m) {
+            JS_FreeValue(ctx, val);
+            return NULL;
+        }
+        JS_AddModuleExport(ctx, m, "default");
+        JS_SetModulePrivateValue(ctx, m, val);
+        return m;
     }
 
     /* compile the module */
@@ -1757,7 +1808,7 @@ int run_test_buf(ThreadLocalStorage *tls, const char *filename, char *harness,
     JS_SetCanBlock(rt, can_block);
 
     /* loader for ES6 modules */
-    JS_SetModuleLoaderFunc(rt, NULL, js_module_loader_test, (void *) filename);
+    JS_SetModuleLoaderFunc2(rt, NULL, js_module_loader_test, NULL, (void *) filename);
 
     if (track_promise_rejections)
         JS_SetHostPromiseRejectionTracker(rt, js_std_promise_rejection_tracker, NULL);
@@ -2011,7 +2062,7 @@ int run_test262_harness_test(ThreadLocalStorage *tls, const char *filename,
     JS_SetCanBlock(rt, can_block);
 
     /* loader for ES6 modules */
-    JS_SetModuleLoaderFunc(rt, NULL, js_module_loader_test, (void *) filename);
+    JS_SetModuleLoaderFunc2(rt, NULL, js_module_loader_test, NULL, (void *) filename);
 
     add_helpers(ctx);
 
