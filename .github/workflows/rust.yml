@@ -80,7 +80,7 @@ jobs:
           cargo build
       - name: Test (windows)
         run: |
-          cargo test --no-default-features --features quickjs-ng
+          cargo test --no-default-features
 
   build-test-msvc-ng:
     runs-on: windows-latest
