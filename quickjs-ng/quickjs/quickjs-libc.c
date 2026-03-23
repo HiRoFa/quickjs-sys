@@ -788,26 +788,12 @@ int js_module_set_import_meta(JSContext *ctx, JSValueConst func_val,
     return 0;
 }
 
-static int json_module_init(JSContext *ctx, JSModuleDef *m)
+static int default_module_init(JSContext *ctx, JSModuleDef *m)
 {
     JSValue val;
     val = JS_GetModulePrivateValue(ctx, m);
     JS_SetModuleExport(ctx, m, "default", val);
     return 0;
-}
-
-static JSModuleDef *create_json_module(JSContext *ctx, const char *module_name, JSValue val)
-{
-    JSModuleDef *m;
-    m = JS_NewCModule(ctx, module_name, json_module_init);
-    if (!m) {
-        JS_FreeValue(ctx, val);
-        return NULL;
-    }
-    /* only export the "default" symbol which will contain the JSON object */
-    JS_AddModuleExport(ctx, m, "default");
-    JS_SetModulePrivateValue(ctx, m, val);
-    return m;
 }
 
 /* in order to conform with the specification, only the keys should be
@@ -842,8 +828,14 @@ int js_module_check_attributes(JSContext *ctx, void *opaque,
     return ret;
 }
 
+enum {
+    JS_IMPORT_TYPE_JS,
+    JS_IMPORT_TYPE_JSON,
+    JS_IMPORT_TYPE_TEXT,
+};
+
 /* return > 0 if the attributes indicate a JSON module, 0 otherwise, -1 on error */
-int js_module_test_json(JSContext *ctx, JSValueConst attributes)
+static int js_module_import_type(JSContext *ctx, JSValueConst attributes)
 {
     JSValue str;
     const char *cstr;
@@ -851,80 +843,98 @@ int js_module_test_json(JSContext *ctx, JSValueConst attributes)
     int res;
 
     if (JS_IsUndefined(attributes))
-        return 0;
+        return JS_IMPORT_TYPE_JS;
     str = JS_GetPropertyStr(ctx, attributes, "type");
     if (JS_IsException(str))
         return -1;
     if (!JS_IsString(str)) {
         JS_FreeValue(ctx, str);
-        return 0;
+        return JS_IMPORT_TYPE_JS;
     }
     cstr = JS_ToCStringLen(ctx, &len, str);
     JS_FreeValue(ctx, str);
     if (!cstr)
         return -1;
     if (len == 4 && !memcmp(cstr, "json", len)) {
-        res = 1;
+        res = JS_IMPORT_TYPE_JSON;
+    } else if (len == 4 && !memcmp(cstr, "text", len)) {
+        res = JS_IMPORT_TYPE_TEXT;
     } else {
         /* unknown type - throw error */
         JS_ThrowTypeError(ctx, "unsupported module type: '%s'", cstr);
-        JS_FreeCString(ctx, cstr);
-        return -1;
+        res = -1;
     }
     JS_FreeCString(ctx, cstr);
     return res;
 }
 
-JSModuleDef *js_module_loader(JSContext *ctx,
-                              const char *module_name, void *opaque,
-                              JSValueConst attributes)
+JSModuleDef *js_module_load(JSContext *ctx, const char *module_name,
+                            void *opaque, JSValueConst attributes,
+                            JSLoadFileFunc *load_file)
 {
     JSModuleDef *m;
+    JSValue val;
+    size_t buf_len;
+    char *buf;
+    int type;
 
-    if (js__has_suffix(module_name, QJS_NATIVE_MODULE_SUFFIX)) {
-        m = js_module_loader_so(ctx, module_name);
+    type = js_module_import_type(ctx, attributes);
+    if (type < 0)
+        return NULL;
+    if (js__has_suffix(module_name, ".json"))
+        type = JS_IMPORT_TYPE_JSON;
+    buf = (char *)load_file(ctx, &buf_len, module_name);
+    if (!buf) {
+        JS_ThrowReferenceError(ctx, "could not load module filename '%s'",
+                               module_name);
+        return NULL;
+    }
+    switch (type) {
+    case JS_IMPORT_TYPE_JS:
+        val = JS_Eval(ctx, buf, buf_len, module_name,
+                      JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
+        break;
+    case JS_IMPORT_TYPE_JSON:
+        val = JS_ParseJSON(ctx, buf, buf_len, module_name);
+        break;
+    case JS_IMPORT_TYPE_TEXT:
+        val = JS_NewStringLen(ctx, buf, buf_len);
+        break;
+    default:
+        val = JS_ThrowInternalError(ctx, "unhandled import type");
+        break;
+    }
+    js_free(ctx, buf);
+    if (JS_IsException(val))
+        return NULL;
+    if (type == JS_IMPORT_TYPE_JS) {
+        if (js_module_set_import_meta(ctx, val, true, false) < 0) {
+            JS_FreeValue(ctx, val);
+            return NULL;
+        }
+        // the module is already referenced, so we must free it
+        m = JS_VALUE_GET_PTR(val);
+        JS_FreeValue(ctx, val);
     } else {
-        int res;
-        size_t buf_len;
-        uint8_t *buf;
-
-        res = js_module_test_json(ctx, attributes);
-        if (res < 0)
-            return NULL;
-        buf = js_load_file(ctx, &buf_len, module_name);
-        if (!buf) {
-            JS_ThrowReferenceError(ctx, "could not load module filename '%s'",
-                                   module_name);
+        m = JS_NewCModule(ctx, module_name, default_module_init);
+        if (!m) {
+            JS_FreeValue(ctx, val);
             return NULL;
         }
-        if (js__has_suffix(module_name, ".json") || res > 0) {
-            /* compile as JSON */
-            JSValue val;
-            val = JS_ParseJSON(ctx, (char *)buf, buf_len, module_name);
-            js_free(ctx, buf);
-            if (JS_IsException(val))
-                return NULL;
-            m = create_json_module(ctx, module_name, val);
-            if (!m)
-                return NULL;
-        } else {
-            JSValue func_val;
-            /* compile the module */
-            func_val = JS_Eval(ctx, (char *)buf, buf_len, module_name,
-                               JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
-            js_free(ctx, buf);
-            if (JS_IsException(func_val))
-                return NULL;
-            if (js_module_set_import_meta(ctx, func_val, true, false) < 0) {
-                JS_FreeValue(ctx, func_val);
-                return NULL;
-            }
-            /* the module is already referenced, so we must free it */
-            m = JS_VALUE_GET_PTR(func_val);
-            JS_FreeValue(ctx, func_val);
-        }
+        // only export the "default" symbol which will contain the string
+        // or JSON object
+        JS_AddModuleExport(ctx, m, "default");
+        JS_SetModulePrivateValue(ctx, m, val);
     }
     return m;
+}
+
+JSModuleDef *js_module_loader(JSContext *ctx, const char *module_name,
+                              void *opaque, JSValueConst attributes)
+{
+    if (js__has_suffix(module_name, QJS_NATIVE_MODULE_SUFFIX))
+        return js_module_loader_so(ctx, module_name);
+    return js_module_load(ctx, module_name, opaque, attributes, js_load_file);
 }
 
 static JSValue js_std_exit(JSContext *ctx, JSValueConst this_val,
@@ -1153,19 +1163,27 @@ static bool is_stdio(FILE *f)
     return f == stdin || f == stdout || f == stderr;
 }
 
+static void safe_close(FILE *f, bool is_popen)
+{
+    if (!f)
+        return;
+    if (is_stdio(f))
+        return;
+    if (is_popen) {
+#if !defined(__wasi__)
+        pclose(f);
+#endif
+    } else {
+        fclose(f);
+    }
+}
+
 static void js_std_file_finalizer(JSRuntime *rt, JSValueConst val)
 {
     JSThreadState *ts = js_get_thread_state(rt);
     JSSTDFile *s = JS_GetOpaque(val, ts->std_file_class_id);
     if (s) {
-        if (s->f && !is_stdio(s->f)) {
-#if !defined(__wasi__)
-            if (s->is_popen)
-                pclose(s->f);
-            else
-#endif
-                fclose(s->f);
-        }
+        safe_close(s->f, s->is_popen);
         js_free_rt(rt, s);
     }
 }
@@ -1194,16 +1212,18 @@ static JSValue js_new_std_file(JSContext *ctx, FILE *f, bool is_popen)
     JSValue obj;
     obj = JS_NewObjectClass(ctx, ts->std_file_class_id);
     if (JS_IsException(obj))
-        return obj;
+        goto exception;
     s = js_mallocz(ctx, sizeof(*s));
-    if (!s) {
-        JS_FreeValue(ctx, obj);
-        return JS_EXCEPTION;
-    }
+    if (!s)
+        goto exception;
     s->is_popen = is_popen;
     s->f = f;
     JS_SetOpaque(obj, s);
     return obj;
+exception:
+    safe_close(f, is_popen);
+    JS_FreeValue(ctx, obj);
+    return JS_EXCEPTION;
 }
 
 static void js_set_error_object(JSContext *ctx, JSValueConst obj, int err)
@@ -1509,25 +1529,41 @@ static JSValue js_std_file_read_write(JSContext *ctx, JSValueConst this_val,
                                       int argc, JSValueConst *argv, int magic)
 {
     FILE *f = js_std_file_get(ctx, this_val);
+    bool is_write = (magic != 0);
     uint64_t pos, len;
     size_t size, ret;
+    const char *str;
     uint8_t *buf;
 
     if (!f)
         return JS_EXCEPTION;
-    if (JS_ToIndex(ctx, &pos, argv[1]))
+    pos = 0;
+    if (argc > 1 && JS_ToIndex(ctx, &pos, argv[1]))
         return JS_EXCEPTION;
-    if (JS_ToIndex(ctx, &len, argv[2]))
+    len = 0;
+    if (argc > 2 && JS_ToIndex(ctx, &len, argv[2]))
         return JS_EXCEPTION;
-    buf = JS_GetArrayBuffer(ctx, &size, argv[0]);
+    if (is_write && JS_IsString(argv[0])) {
+        str = JS_ToCStringLen(ctx, &size, argv[0]);
+        buf = (void *)str;
+    } else {
+        str = NULL;
+        buf = JS_GetArrayBuffer(ctx, &size, argv[0]);
+    }
     if (!buf)
         return JS_EXCEPTION;
+    if (pos > size)
+        pos = size;
+    if (argc < 3)
+        len = size - pos;
     if (pos + len > size)
-        return JS_ThrowRangeError(ctx, "read/write array buffer overflow");
-    if (magic)
+        len = size - pos;
+    if (is_write) {
         ret = fwrite(buf + pos, 1, len, f);
-    else
+    } else {
         ret = fread(buf + pos, 1, len, f);
+    }
+    JS_FreeCString(ctx, str);
     return JS_NewInt64(ctx, ret);
 }
 
@@ -1899,8 +1935,8 @@ static const JSCFunctionListEntry js_std_file_proto_funcs[] = {
     JS_CFUNC_DEF("fileno", 0, js_std_file_fileno ),
     JS_CFUNC_DEF("error", 0, js_std_file_error ),
     JS_CFUNC_DEF("clearerr", 0, js_std_file_clearerr ),
-    JS_CFUNC_MAGIC_DEF("read", 3, js_std_file_read_write, 0 ),
-    JS_CFUNC_MAGIC_DEF("write", 3, js_std_file_read_write, 1 ),
+    JS_CFUNC_MAGIC_DEF("read", 1, js_std_file_read_write, 0 ),
+    JS_CFUNC_MAGIC_DEF("write", 1, js_std_file_read_write, 1 ),
     JS_CFUNC_DEF("getline", 0, js_std_file_getline ),
     JS_CFUNC_MAGIC_DEF("readAsArrayBuffer", 0, js_std_file_readAs, 0 ),
     JS_CFUNC_MAGIC_DEF("readAsString", 0, js_std_file_readAs, 1 ),
@@ -2931,17 +2967,13 @@ static JSValue make_obj_error(JSContext *ctx,
                               JSValue obj,
                               int err)
 {
-    JSValue arr;
+    JSValue vals[2];
+
     if (JS_IsException(obj))
         return obj;
-    arr = JS_NewArray(ctx);
-    if (JS_IsException(arr))
-        return JS_EXCEPTION;
-    JS_DefinePropertyValueUint32(ctx, arr, 0, obj,
-                                 JS_PROP_C_W_E);
-    JS_DefinePropertyValueUint32(ctx, arr, 1, JS_NewInt32(ctx, err),
-                                 JS_PROP_C_W_E);
-    return arr;
+    vals[0] = obj;
+    vals[1] = JS_NewInt32(ctx, err);
+    return JS_NewArrayFrom(ctx, countof(vals), vals);
 }
 
 static JSValue make_string_error(JSContext *ctx,
@@ -3086,6 +3118,53 @@ done:
     return make_obj_error(ctx, obj, err);
 #endif
 }
+
+#if !defined(_WIN32) && !defined(__wasi__)
+#define PAT "XXXXXX"
+#define PSZ (sizeof(PAT)-1)
+static JSValue js_os_mkdstemp(JSContext *ctx, JSValueConst this_val,
+                              int argc, JSValueConst *argv, int magic)
+{
+    char pat_s[32] = "tmp"PAT, *pat = pat_s;
+    const char *s;
+    size_t k, n;
+    JSValue val;
+    int err;
+
+    if (argc > 0) {
+        s = JS_ToCStringLen(ctx, &n, argv[0]);
+        if (!s)
+            return JS_EXCEPTION;
+        k = n;
+        if (n < PSZ || memcmp(&s[n-PSZ], PAT, PSZ))
+            k += PSZ;
+        if (k >= sizeof(pat_s))
+            pat = js_malloc(ctx, k+1);
+        if (pat) {
+            memcpy(pat, s, n);
+            if (n < k)
+                memcpy(&pat[n], PAT, PSZ);
+            pat[k] = '\0';
+        }
+        JS_FreeCString(ctx, s);
+        if (!pat)
+            return JS_EXCEPTION;
+    }
+    if (magic == 'd') {
+        err = 0;
+        if (!mkdtemp(pat))
+            err = -errno;
+    } else {
+        err = js_get_errno(mkstemp(pat));
+    }
+    val = JS_NewString(ctx, pat);
+    if (pat != pat_s)
+        js_free(ctx, pat);
+    return make_obj_error(ctx, val, err);
+}
+#undef PSZ
+#undef PAT
+#endif // !defined(_WIN32) && !defined(__wasi__)
 
 #if !defined(_WIN32)
 static int64_t timespec_to_ms(const struct timespec *tv)
@@ -4350,6 +4429,10 @@ static const JSCFunctionListEntry js_os_funcs[] = {
     JS_CFUNC_DEF("chdir", 0, js_os_chdir ),
     JS_CFUNC_DEF("mkdir", 1, js_os_mkdir ),
     JS_CFUNC_DEF("readdir", 1, js_os_readdir ),
+#if !defined(_WIN32) && !defined(__wasi__)
+    JS_CFUNC_MAGIC_DEF("mkdtemp", 0, js_os_mkdstemp, 'd' ),
+    JS_CFUNC_MAGIC_DEF("mkstemp", 0, js_os_mkdstemp, 's' ),
+#endif
     /* st_mode constants */
     OS_FLAG(S_IFMT),
     OS_FLAG(S_IFIFO),
@@ -4853,6 +4936,7 @@ static JSValue js_bjson_read(JSContext *ctx, JSValueConst this_val,
         return JS_EXCEPTION;
     if (JS_ToInt32(ctx, &flags, argv[3]))
         return JS_EXCEPTION;
+    flags &= ~JS_READ_OBJ_SAB;
     buf = JS_GetArrayBuffer(ctx, &size, argv[0]);
     if (!buf)
         return JS_EXCEPTION;
@@ -4872,6 +4956,7 @@ static JSValue js_bjson_write(JSContext *ctx, JSValueConst this_val,
 
     if (JS_ToInt32(ctx, &flags, argv[1]))
         return JS_EXCEPTION;
+    flags &= ~JS_WRITE_OBJ_SAB;
     buf = JS_WriteObject(ctx, &len, argv[0], flags);
     if (!buf)
         return JS_EXCEPTION;
@@ -4887,10 +4972,8 @@ static const JSCFunctionListEntry js_bjson_funcs[] = {
 #define DEF(x) JS_PROP_INT32_DEF(#x, JS_##x, JS_PROP_CONFIGURABLE)
     DEF(READ_OBJ_BYTECODE),
     DEF(READ_OBJ_REFERENCE),
-    DEF(READ_OBJ_SAB),
     DEF(WRITE_OBJ_BYTECODE),
     DEF(WRITE_OBJ_REFERENCE),
-    DEF(WRITE_OBJ_SAB),
     DEF(WRITE_OBJ_STRIP_DEBUG),
     DEF(WRITE_OBJ_STRIP_SOURCE),
 #undef DEF

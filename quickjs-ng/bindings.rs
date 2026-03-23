@@ -254,8 +254,10 @@ pub const JS_DEF_PROP_DOUBLE: u32 = 6;
 pub const JS_DEF_PROP_UNDEFINED: u32 = 7;
 pub const JS_DEF_OBJECT: u32 = 8;
 pub const JS_DEF_ALIAS: u32 = 9;
+pub const JS_DEF_PROP_SYMBOL: u32 = 10;
+pub const JS_DEF_PROP_BOOL: u32 = 11;
 pub const QJS_VERSION_MAJOR: u32 = 0;
-pub const QJS_VERSION_MINOR: u32 = 12;
+pub const QJS_VERSION_MINOR: u32 = 13;
 pub const QJS_VERSION_PATCH: u32 = 0;
 pub const QJS_VERSION_SUFFIX: &[u8; 1] = b"\0";
 pub type __gnuc_va_list = __builtin_va_list;
@@ -2998,46 +3000,46 @@ unsafe extern "C" {
     pub fn JS_NewContextRaw(rt: *mut JSRuntime) -> *mut JSContext;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicBaseObjects(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicBaseObjects(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicDate(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicDate(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicEval(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicEval(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
     pub fn JS_AddIntrinsicRegExpCompiler(ctx: *mut JSContext);
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicRegExp(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicRegExp(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicJSON(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicJSON(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicProxy(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicProxy(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicMapSet(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicMapSet(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicTypedArrays(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicTypedArrays(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicPromise(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicPromise(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicBigInt(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicBigInt(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicWeakRef(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicWeakRef(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn JS_AddPerformance(ctx: *mut JSContext);
+    pub fn JS_AddPerformance(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicDOMException(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicDOMException(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
     pub fn JS_IsEqual(ctx: *mut JSContext, op1: JSValue, op2: JSValue) -> ::std::os::raw::c_int;
@@ -4089,6 +4091,12 @@ unsafe extern "C" {
     pub fn JS_IsArrayBuffer(obj: JSValue) -> bool;
 }
 unsafe extern "C" {
+    pub fn JS_IsImmutableArrayBuffer(obj: JSValue) -> ::std::os::raw::c_int;
+}
+unsafe extern "C" {
+    pub fn JS_SetImmutableArrayBuffer(obj: JSValue, immutable: bool) -> ::std::os::raw::c_int;
+}
+unsafe extern "C" {
     pub fn JS_GetUint8Array(ctx: *mut JSContext, psize: *mut usize, obj: JSValue) -> *mut u8;
 }
 pub const JSTypedArrayEnum_JS_TYPED_ARRAY_UINT8C: JSTypedArrayEnum = 0;
@@ -4193,6 +4201,9 @@ unsafe extern "C" {
     pub fn JS_IsPromise(val: JSValue) -> bool;
 }
 unsafe extern "C" {
+    pub fn JS_NewSettledPromise(ctx: *mut JSContext, is_reject: bool, value: JSValue) -> JSValue;
+}
+unsafe extern "C" {
     pub fn JS_NewSymbol(
         ctx: *mut JSContext,
         description: *const ::std::os::raw::c_char,
@@ -4268,6 +4279,15 @@ pub type JSModuleNormalizeFunc = ::std::option::Option<
         opaque: *mut ::std::os::raw::c_void,
     ) -> *mut ::std::os::raw::c_char,
 >;
+pub type JSModuleNormalizeFunc2 = ::std::option::Option<
+    unsafe extern "C" fn(
+        ctx: *mut JSContext,
+        module_base_name: *const ::std::os::raw::c_char,
+        module_name: *const ::std::os::raw::c_char,
+        attributes: JSValue,
+        opaque: *mut ::std::os::raw::c_void,
+    ) -> *mut ::std::os::raw::c_char,
+>;
 pub type JSModuleLoaderFunc = ::std::option::Option<
     unsafe extern "C" fn(
         ctx: *mut JSContext,
@@ -4306,6 +4326,9 @@ unsafe extern "C" {
         module_check_attrs: JSModuleCheckSupportedImportAttributes,
         opaque: *mut ::std::os::raw::c_void,
     );
+}
+unsafe extern "C" {
+    pub fn JS_SetModuleNormalizeFunc2(rt: *mut JSRuntime, module_normalize: JSModuleNormalizeFunc2);
 }
 unsafe extern "C" {
     pub fn JS_GetImportMeta(ctx: *mut JSContext, m: *mut JSModuleDef) -> JSValue;
@@ -4536,6 +4559,7 @@ unsafe extern "C" {
         cproto: JSCFunctionEnum,
         magic: ::std::os::raw::c_int,
         proto_val: JSValue,
+        n_fields: ::std::os::raw::c_int,
     ) -> JSValue;
 }
 unsafe extern "C" {
@@ -4573,7 +4597,11 @@ unsafe extern "C" {
     ) -> JSValue;
 }
 unsafe extern "C" {
-    pub fn JS_SetConstructor(ctx: *mut JSContext, func_obj: JSValue, proto: JSValue);
+    pub fn JS_SetConstructor(
+        ctx: *mut JSContext,
+        func_obj: JSValue,
+        proto: JSValue,
+    ) -> ::std::os::raw::c_int;
 }
 #[repr(C)]
 #[derive(Copy, Clone)]

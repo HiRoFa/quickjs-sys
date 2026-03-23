@@ -56,7 +56,6 @@ fn main() {
     ];
     #[cfg(feature = "quickjs-ng")]
     let files = [
-        "cutils.c",
         "dtoa.c",
         "libregexp.c",
         "libunicode.c",

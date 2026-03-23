@@ -1,7 +1,7 @@
 project(
   'quickjs-ng',
   'c',
-  version: '0.12.0',
+  version: '0.13.0',
   default_options: [
     'c_std=gnu11,c11',
     'warning_level=3',
@@ -167,21 +167,12 @@ if not qjs_parser
   qjs_c_args += ['-DQJS_DISABLE_PARSER']
 endif
 
-cutils_lib = static_library(
-  'cutils',
-  'cutils.c',
-
-  dependencies: qjs_sys_deps,
-  c_args: qjs_c_args
-)
-
 qjs_lib = library(
   'qjs',
   qjs_srcs,
   qjs_libc ? qjs_libc_srcs : [],
 
   dependencies: qjs_sys_deps,
-  link_with: cutils_lib,
   c_args: qjs_c_args,
   c_shared_args: ['-DBUILDING_QJS_SHARED'],
   gnu_symbol_visibility: 'hidden',
@@ -235,7 +226,6 @@ else
     qjs_libc_srcs,
 
     c_args: qjs_c_args,
-    link_with: cutils_lib,
     dependencies: [qjs_sys_deps, qjs_dep],
     gnu_symbol_visibility: 'hidden',
   )
@@ -319,7 +309,6 @@ qjsc_exe = executable(
   qjsc_srcs,
 
   c_args: qjs_c_args,
-  link_with: [cutils_lib],
   dependencies: [qjs_dep, qjs_libc_dep],
   install: true,
 )
@@ -344,7 +333,6 @@ qjs_exe = executable(
   qjs_exe_srcs,
 
   c_args: qjs_c_args,
-  link_with: [cutils_lib],
   dependencies: [qjs_dep, qjs_libc_dep, mimalloc_dep],
   export_dynamic: true,
 
@@ -426,7 +414,6 @@ if tests.allowed()
       'run-test262',
       'run-test262.c',
 
-      link_with: cutils_lib,
       c_args: qjs_c_args,
       dependencies: [qjs_dep, qjs_libc_dep]
     )
@@ -528,9 +515,22 @@ if tests.allowed()
       'api-test',
       'api-test.c',
 
-      link_with: cutils_lib,
       c_args: qjs_c_args,
       dependencies: qjs_dep,
+      build_by_default: false,
+    ),
+  )
+
+  # LRE test
+  test(
+    'lre',
+    executable(
+      'lre-test',
+      'lre-test.c',
+      'libregexp.c',
+      'libunicode.c',
+
+      c_args: qjs_c_args,
       build_by_default: false,
     ),
   )
@@ -554,7 +554,6 @@ unicode_gen = executable(
   'unicode_gen',
   'unicode_gen.c',
 
-  link_with: cutils_lib,
   c_args: qjs_c_args,
   build_by_default: false,
 )
