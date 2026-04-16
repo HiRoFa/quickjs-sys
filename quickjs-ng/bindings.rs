@@ -257,7 +257,7 @@ pub const JS_DEF_ALIAS: u32 = 9;
 pub const JS_DEF_PROP_SYMBOL: u32 = 10;
 pub const JS_DEF_PROP_BOOL: u32 = 11;
 pub const QJS_VERSION_MAJOR: u32 = 0;
-pub const QJS_VERSION_MINOR: u32 = 13;
+pub const QJS_VERSION_MINOR: u32 = 14;
 pub const QJS_VERSION_PATCH: u32 = 0;
 pub const QJS_VERSION_SUFFIX: &[u8; 1] = b"\0";
 pub type __gnuc_va_list = __builtin_va_list;
@@ -3727,6 +3727,9 @@ unsafe extern "C" {
     pub fn JS_IsFunction(ctx: *mut JSContext, val: JSValue) -> bool;
 }
 unsafe extern "C" {
+    pub fn JS_IsAsyncFunction(val: JSValue) -> bool;
+}
+unsafe extern "C" {
     pub fn JS_IsConstructor(ctx: *mut JSContext, val: JSValue) -> bool;
 }
 unsafe extern "C" {
@@ -4366,6 +4369,9 @@ unsafe extern "C" {
 }
 unsafe extern "C" {
     pub fn JS_IsJobPending(rt: *mut JSRuntime) -> bool;
+}
+unsafe extern "C" {
+    pub fn JS_GetPendingJobContext(rt: *mut JSRuntime) -> *mut JSContext;
 }
 unsafe extern "C" {
     pub fn JS_ExecutePendingJob(
