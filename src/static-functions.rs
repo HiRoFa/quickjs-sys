@@ -1,7 +1,10 @@
 unsafe extern "C" {
     fn JS_ValueGetTag_real(v: JSValue) -> i32;
+    #[cfg(feature = "bellard")]
     fn JS_ValueGetPtr_real(v: JSValue) -> *mut std::ffi::c_void;
+    #[cfg(feature = "bellard")]
     fn JS_ValueGetInt_real(v: JSValue) -> i32;
+    #[cfg(feature = "bellard")]
     fn JS_ValueGetRefCount_real(v: JSValue) -> i32;
 
     #[cfg(feature = "bellard")]
@@ -61,14 +64,15 @@ unsafe extern "C" {
 pub unsafe fn JS_ValueGetTag(v: JSValue) -> i32 {
     unsafe { JS_ValueGetTag_real(v) }
 }
-
+#[cfg(feature = "bellard")]
 pub unsafe fn JS_ValueGetRefCount(v: JSValue) -> i32 {
     unsafe { JS_ValueGetRefCount_real(v) }
 }
+#[cfg(feature = "bellard")]
 pub unsafe fn JS_ValueGetPtr(v: JSValue) -> *mut std::ffi::c_void {
     unsafe { JS_ValueGetPtr_real(v) }
 }
-
+#[cfg(feature = "bellard")]
 pub unsafe fn JS_ValueGetInt(v: JSValue) -> i32 {
     unsafe { JS_ValueGetInt_real(v) }
 }
