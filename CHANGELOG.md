@@ -1,5 +1,9 @@
 # hirofa-quickjs_sys - Changelog
 
+## 0.16.1
+
+* some static-functions are only for bellard version
+
 ## 0.16.0
 
 * update quickjs to 2026-06-04
