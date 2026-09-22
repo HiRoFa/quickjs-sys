@@ -248,6 +248,15 @@ function test_delete()
     assert(err, true, "delete");
 }
 
+function test_constructor()
+{
+    function *G() {}
+    let ex
+    try { new G() } catch (ex_) { ex = ex_ }
+    assert(ex instanceof TypeError)
+    assert(ex.message, "G is not a constructor")
+}
+
 function test_prototype()
 {
     var f = function f() { };
@@ -368,7 +377,7 @@ function test_template_skip()
 
 function test_object_literal()
 {
-    var x = 0, get = 1, set = 2; async = 3;
+    var x = 0, get = 1, set = 2, async = 3;
     a = { get: 2, set: 3, async: 4, get a(){ return this.get} };
     assert(JSON.stringify(a), '{"get":2,"set":3,"async":4,"a":2}');
     assert(a.a === 2);
@@ -628,11 +637,49 @@ function test_unicode_ident()
     assert(typeof õ, "undefined");
 }
 
+/* check global variable optimization */
+function test_global_var_opt()
+{
+    var v2;
+    (1, eval)('var gvar1'); /* create configurable global variables */
+
+    gvar1 = 1;
+    Object.defineProperty(globalThis, "gvar1", { writable: false });
+    gvar1 = 2;
+    assert(gvar1, 1);
+
+    Object.defineProperty(globalThis, "gvar1", { get: function() { return "hello" },
+                                                 set: function(v) { v2 = v; } });
+    assert(gvar1, "hello");
+    gvar1 = 3;
+    assert(v2, 3);
+
+    Object.defineProperty(globalThis, "gvar1", { value: 4, writable: true, configurable: true });
+    assert(gvar1, 4);
+    gvar1 = 6;
+    
+    delete gvar1;
+    assert_throws(ReferenceError, function() { return gvar1 });
+    gvar1 = 5;
+    assert(gvar1, 5);
+}
+
+function test_number_literals()
+{
+    assert(0.1.a, undefined);
+    assert(0x1.a, undefined);
+    assert(0b1.a, undefined);
+    assert(01.a, undefined);
+    assert(0o1.a, undefined);
+    assert_throws(SyntaxError, () => eval('0.a'));
+}
+
 test_op1();
 test_cvt();
 test_eq();
 test_inc_dec();
 test_op2();
+test_constructor();
 test_delete();
 test_prototype();
 test_arguments();
@@ -652,3 +699,5 @@ test_parse_semicolon();
 test_optional_chaining();
 test_parse_arrow_function();
 test_unicode_ident();
+test_global_var_opt();
+test_number_literals();

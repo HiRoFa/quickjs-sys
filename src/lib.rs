@@ -39,6 +39,11 @@ mod tests {
                 JS_EVAL_TYPE_GLOBAL as i32,
             );
             assert_eq!(value.tag, 0);
+
+            #[cfg(feature = "bellard")]
+            assert_eq!(value.u.uint64, 2);
+
+            #[cfg(feature = "quickjs-ng")]
             assert_eq!(value.u.int32, 2);
 
             JS_DupValue(ctx, value);

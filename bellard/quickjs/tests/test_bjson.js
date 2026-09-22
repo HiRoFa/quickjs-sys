@@ -115,6 +115,41 @@ function bjson_test(a)
     }
 }
 
+function bjson_test_arraybuffer()
+{
+    var buf, array_buffer;
+
+    array_buffer = new ArrayBuffer(4);
+    assert(array_buffer.byteLength, 4);
+    assert(array_buffer.maxByteLength, 4);
+    assert(array_buffer.resizable, false);
+    buf = bjson.write(array_buffer);
+    array_buffer = bjson.read(buf, 0, buf.byteLength);
+    assert(array_buffer.byteLength, 4);
+    assert(array_buffer.maxByteLength, 4);
+    assert(array_buffer.resizable, false);
+
+    array_buffer = new ArrayBuffer(4, {maxByteLength: 4});
+    assert(array_buffer.byteLength, 4);
+    assert(array_buffer.maxByteLength, 4);
+    assert(array_buffer.resizable, true);
+    buf = bjson.write(array_buffer);
+    array_buffer = bjson.read(buf, 0, buf.byteLength);
+    assert(array_buffer.byteLength, 4);
+    assert(array_buffer.maxByteLength, 4);
+    assert(array_buffer.resizable, true);
+
+    array_buffer = new ArrayBuffer(4, {maxByteLength: 8});
+    assert(array_buffer.byteLength, 4);
+    assert(array_buffer.maxByteLength, 8);
+    assert(array_buffer.resizable, true);
+    buf = bjson.write(array_buffer);
+    array_buffer = bjson.read(buf, 0, buf.byteLength);
+    assert(array_buffer.byteLength, 4);
+    assert(array_buffer.maxByteLength, 8);
+    assert(array_buffer.resizable, true);
+}
+
 /* test multiple references to an object including circular
    references */
 function bjson_test_reference()
@@ -149,7 +184,18 @@ function bjson_test_all()
     var obj;
 
     bjson_test({x:1, y:2, if:3});
+
     bjson_test([1, 2, 3]);
+
+    /* array with holes */
+    bjson_test([1, , 2, , 3]); 
+
+    /* fast array with hole */
+    obj = new Array(5);
+    obj[0] = 1;
+    obj[1] = 2;
+    bjson_test(obj);
+
     bjson_test([1.0, "aa", true, false, undefined, null, NaN, -Infinity, -0.0]);
     if (typeof BigInt !== "undefined") {
         bjson_test([BigInt("1"), -BigInt("0x123456789"),
@@ -171,6 +217,7 @@ function bjson_test_all()
         assert(e instanceof TypeError);
     }
 
+    bjson_test_arraybuffer();
     bjson_test_reference();
 }
 

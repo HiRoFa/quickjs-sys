@@ -303,8 +303,7 @@ pub const JS_PROP_HAS_SET: u32 = 4096;
 pub const JS_PROP_HAS_VALUE: u32 = 8192;
 pub const JS_PROP_THROW: u32 = 16384;
 pub const JS_PROP_THROW_STRICT: u32 = 32768;
-pub const JS_PROP_NO_ADD: u32 = 65536;
-pub const JS_PROP_NO_EXOTIC: u32 = 131072;
+pub const JS_PROP_NO_EXOTIC: u32 = 65536;
 pub const JS_DEFAULT_STACK_SIZE: u32 = 1048576;
 pub const JS_EVAL_TYPE_GLOBAL: u32 = 0;
 pub const JS_EVAL_TYPE_MODULE: u32 = 1;
@@ -344,6 +343,8 @@ pub const JS_DEF_PROP_DOUBLE: u32 = 6;
 pub const JS_DEF_PROP_UNDEFINED: u32 = 7;
 pub const JS_DEF_OBJECT: u32 = 8;
 pub const JS_DEF_ALIAS: u32 = 9;
+pub const JS_DEF_PROP_ATOM: u32 = 10;
+pub const JS_DEF_PROP_BOOL: u32 = 11;
 pub type __gnuc_va_list = __builtin_va_list;
 pub type __u_char = ::std::os::raw::c_uchar;
 pub type __u_short = ::std::os::raw::c_ushort;
@@ -1557,7 +1558,7 @@ const _: () = {
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub union JSValueUnion {
-    pub int32: i32,
+    pub uint64: u64,
     pub float64: f64,
     pub ptr: *mut ::std::os::raw::c_void,
     pub short_big_int: i64,
@@ -1566,7 +1567,8 @@ pub union JSValueUnion {
 const _: () = {
     ["Size of JSValueUnion"][::std::mem::size_of::<JSValueUnion>() - 8usize];
     ["Alignment of JSValueUnion"][::std::mem::align_of::<JSValueUnion>() - 8usize];
-    ["Offset of field: JSValueUnion::int32"][::std::mem::offset_of!(JSValueUnion, int32) - 0usize];
+    ["Offset of field: JSValueUnion::uint64"]
+        [::std::mem::offset_of!(JSValueUnion, uint64) - 0usize];
     ["Offset of field: JSValueUnion::float64"]
         [::std::mem::offset_of!(JSValueUnion, float64) - 0usize];
     ["Offset of field: JSValueUnion::ptr"][::std::mem::offset_of!(JSValueUnion, ptr) - 0usize];
@@ -1743,40 +1745,40 @@ unsafe extern "C" {
     pub fn JS_NewContextRaw(rt: *mut JSRuntime) -> *mut JSContext;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicBaseObjects(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicBaseObjects(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicDate(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicDate(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicEval(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicEval(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicStringNormalize(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicStringNormalize(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
     pub fn JS_AddIntrinsicRegExpCompiler(ctx: *mut JSContext);
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicRegExp(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicRegExp(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicJSON(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicJSON(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicProxy(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicProxy(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicMapSet(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicMapSet(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicTypedArrays(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicTypedArrays(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicPromise(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicPromise(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
-    pub fn JS_AddIntrinsicWeakRef(ctx: *mut JSContext);
+    pub fn JS_AddIntrinsicWeakRef(ctx: *mut JSContext) -> ::std::os::raw::c_int;
 }
 unsafe extern "C" {
     pub fn js_string_codePointRange(
@@ -3011,7 +3013,11 @@ unsafe extern "C" {
     ) -> JSValue;
 }
 unsafe extern "C" {
-    pub fn JS_SetConstructor(ctx: *mut JSContext, func_obj: JSValue, proto: JSValue);
+    pub fn JS_SetConstructor(
+        ctx: *mut JSContext,
+        func_obj: JSValue,
+        proto: JSValue,
+    ) -> ::std::os::raw::c_int;
 }
 #[repr(C)]
 #[derive(Copy, Clone)]

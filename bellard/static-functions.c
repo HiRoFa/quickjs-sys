@@ -5,8 +5,24 @@
 // We use define simple wrapper functions to make them available to bindgen,
 // and therefore make them usable from Rust.
 
+int JS_ValueGetRefCount_real(JSValue v) {
+    if (JS_VALUE_HAS_REF_COUNT(v)) {
+        return __js_rc(JS_VALUE_GET_PTR(v))->ref_count;
+    } else {
+        return -1;
+    }
+}
+
 int JS_ValueGetTag_real(JSValue v) {
     return JS_VALUE_GET_TAG(v);
+}
+
+void *JS_ValueGetPtr_real(JSValue v) {
+    return JS_VALUE_GET_PTR(v);
+}
+
+int JS_ValueGetInt_real(JSValue v) {
+    return JS_VALUE_GET_INT(v);
 }
 
 void JS_FreeValue_real(JSContext *ctx, JSValue v) {
